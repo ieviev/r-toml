@@ -43,6 +43,15 @@ let valuelist =
     for v in vlist do 
         //.. do something
 let dictionary2 = RToml.Parse.toKeyDictionary(toml)
+// or iterate over the key-value pairs
+Parse.stream (
+    (fun key value ->
+        if value.kind = Token.TRUE then
+            let keystr = key.ToFullString toml // struct to string
+            printfn $"{keystr} at pos:{key.key_begin} is set to true"
+    ),
+    toml
+)
 ```
 
 #### Supported types: 
