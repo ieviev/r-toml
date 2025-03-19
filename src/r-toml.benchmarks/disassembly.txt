@@ -1,0 +1,1094 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
+using System.Text;
+using <StartupCode$r-toml-benchmarks>;
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Order;
+using BenchmarkDotNet.Reports;
+using BenchmarkDotNet.Running;
+using CsToml;
+using Microsoft.FSharp.Core;
+using Tomlet;
+using Tomlet.Models;
+using Tomlyn;
+using Tomlyn.Model;
+using Tomlyn.Syntax;
+using Tommy;
+
+[assembly: FSharpInterfaceDataVersion(2, 0, 0)]
+[assembly: AssemblyCompany("r-toml.benchmarks")]
+[assembly: AssemblyConfiguration("Release")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyInformationalVersion("1.0.0+f44c11fe821c761b48530c87993b22ae6e1900c2")]
+[assembly: AssemblyProduct("r-toml.benchmarks")]
+[assembly: AssemblyTitle("r-toml.benchmarks")]
+[assembly: TargetFramework(".NETCoreApp,Version=v9.0", FrameworkDisplayName = ".NET 9.0")]
+[assembly: Debuggable(DebuggableAttribute.DebuggingModes.Default | DebuggableAttribute.DebuggingModes.IgnoreSymbolStoreSequencePoints)]
+[assembly: AssemblyVersion("1.0.0.0")]
+[CompilationMapping(SourceConstructFlags.Module)]
+public static class Program
+{
+	[Serializable]
+	[Orderer(SummaryOrderPolicy.FastestToSlowest, MethodOrderPolicy.Declared)]
+	[MemoryDiagnoser(true)]
+	[ShortRunJob]
+	[HideColumns(new string[] { "Gen0", "Gen1", "Gen2" })]
+	[CompilationMapping(SourceConstructFlags.ObjectType)]
+	public class Benchmarks
+	{
+		internal byte[] Utf8@;
+
+		internal string Utf16@;
+
+		public byte[] Utf8
+		{
+			[CompilerGenerated]
+			[DebuggerNonUserCode]
+			get
+			{
+				return Utf8@;
+			}
+			[CompilerGenerated]
+			[DebuggerNonUserCode]
+			set
+			{
+				Utf8@ = value;
+			}
+		}
+
+		public string Utf16
+		{
+			[CompilerGenerated]
+			[DebuggerNonUserCode]
+			get
+			{
+				return Utf16@;
+			}
+			[CompilerGenerated]
+			[DebuggerNonUserCode]
+			set
+			{
+				Utf16@ = value;
+			}
+		}
+
+		public Benchmarks()
+		{
+			Utf8@ = null;
+			Utf16@ = null;
+		}
+
+		[GlobalSetup]
+		public void Setup()
+		{
+			StringBuilder stringBuilder = new StringBuilder(2097152);
+			ulong num = 0uL;
+			int num2 = 0;
+			for (; num < 16667; num++)
+			{
+				int num3 = num2;
+				StringBuilder stringBuilder2 = stringBuilder.AppendLine(PrintfModule.PrintFormatToStringThen(new PrintfFormat<string, Unit, string, string, int>("key%P() = true", new object[1] { num3 }, null)));
+				stringBuilder2 = stringBuilder.AppendLine(PrintfModule.PrintFormatToStringThen(new PrintfFormat<string, Unit, string, string, int>("key%P() = false", new object[1] { num3 + 1 }, null)));
+				stringBuilder2 = stringBuilder.AppendLine(PrintfModule.PrintFormatToStringThen(new PrintfFormat<string, Unit, string, string, int>("key%P() = 'asd'", new object[1] { num3 + 2 }, null)));
+				stringBuilder2 = stringBuilder.AppendLine(PrintfModule.PrintFormatToStringThen(new PrintfFormat<string, Unit, string, string, int>("key%P() = 100", new object[1] { num3 + 3 }, null)));
+				stringBuilder2 = stringBuilder.AppendLine(PrintfModule.PrintFormatToStringThen(new PrintfFormat<string, Unit, string, string, int>("key%P() = 0.01", new object[1] { num3 + 4 }, null)));
+				stringBuilder2 = stringBuilder.AppendLine(PrintfModule.PrintFormatToStringThen(new PrintfFormat<string, Unit, string, string, int>("key%P() = '''tri'''", new object[1] { num3 + 5 }, null)));
+				num2 += 6;
+			}
+			Utf16@ = stringBuilder.ToString();
+			Utf8@ = Encoding.UTF8.GetBytes(Utf16@);
+		}
+
+		[Benchmark(36, "/home/ian/f/myrepos/r-toml/src/r-toml.benchmarks/Program.fs")]
+		public global::CsToml.TomlDocument CsToml()
+		{
+			return CsTomlSerializer.Deserialize<global::CsToml.TomlDocument>(Utf8@);
+		}
+
+		[Benchmark(40, "/home/ian/f/myrepos/r-toml/src/r-toml.benchmarks/Program.fs")]
+		public global::Tommy.TomlTable Tommy()
+		{
+			using StringReader reader = new StringReader(Utf16@);
+			return TOML.Parse(reader);
+		}
+
+		[Benchmark(45, "/home/ian/f/myrepos/r-toml/src/r-toml.benchmarks/Program.fs")]
+		public global::Tomlet.Models.TomlDocument Tomlet()
+		{
+			return new TomlParser().Parse(Utf16@);
+		}
+
+		[Benchmark(49, "/home/ian/f/myrepos/r-toml/src/r-toml.benchmarks/Program.fs")]
+		public Tomlyn.Model.TomlTable TomlynUtf16()
+		{
+			return Toml.ToModel(Utf16@);
+		}
+
+		[Benchmark(52, "/home/ian/f/myrepos/r-toml/src/r-toml.benchmarks/Program.fs")]
+		public DocumentSyntax TomlynUtf8()
+		{
+			return Toml.Parse(Utf8@);
+		}
+
+		[Benchmark(55, "/home/ian/f/myrepos/r-toml/src/r-toml.benchmarks/Program.fs")]
+		public Dictionary<string, RToml.Value> RTomlToDictionary()
+		{
+			byte[] utf8@ = Utf8@;
+			ReadOnlySpan<byte> readOnlySpan = utf8@;
+			RToml.Internal.ValueList<KeyValuePair<RToml.Key, RToml.Value>> valueList = new RToml.Internal.ValueList<KeyValuePair<RToml.Key, RToml.Value>>(512);
+			try
+			{
+				RToml.Key key = new RToml.Key(0, 0, 0, 0, 0);
+				int num = 0;
+				int num2 = 0;
+				int num3 = 0;
+				int num4 = Automata.toml.initial_state;
+				byte[] minterms_lookup = Automata.toml.minterms_lookup;
+				int minterms_log = Automata.toml.minterms_log;
+				ushort[] center_table = Automata.toml.center_table;
+				byte[] center_rel = Automata.toml.center_rel;
+				byte[] center_tag = Automata.toml.center_tag;
+				while (num4 != 0)
+				{
+					if (center_rel[num4] != 0)
+					{
+						num3 = num - center_rel[num4];
+						int num5 = num2;
+						int num6 = num3;
+						byte b = center_tag[num4];
+						RToml.Token token = (RToml.Token)b;
+						switch (token)
+						{
+						case RToml.Token.UQ_KEY:
+							key.key_begin = num5;
+							key.key_end = num6;
+							break;
+						case RToml.Token.TABLE_STD:
+							key.index = 0;
+							key.root_begin = num5;
+							key.root_end = num6;
+							break;
+						case RToml.Token.TABLE_ARR:
+							key.index++;
+							key.root_begin = num5;
+							key.root_end = num6;
+							break;
+						default:
+						{
+							RToml.Value value = new RToml.Value(token, num5, num6);
+							RToml.Key key2 = key;
+							KeyValuePair<RToml.Key, RToml.Value> keyValuePair = new KeyValuePair<RToml.Key, RToml.Value>(key2, value);
+							if (valueList.Size == valueList.Limit)
+							{
+								valueList.GrowTo(valueList.Limit * 2);
+							}
+							valueList.Pool[valueList.Size] = keyValuePair;
+							valueList.Size++;
+							break;
+						}
+						case RToml.Token.NONE:
+						case RToml.Token.IGNORE:
+						case RToml.Token.COMMENT:
+							break;
+						}
+						num2 = num3;
+					}
+					num4 = center_table[(num4 << minterms_log) | minterms_lookup[readOnlySpan[num]]];
+					num++;
+					if (num != readOnlySpan.Length)
+					{
+						continue;
+					}
+					if (center_rel[num4] != 0)
+					{
+						num3 = num - center_rel[num4];
+						int num5 = num2;
+						int num6 = num3;
+						byte b = center_tag[num4];
+						RToml.Token token = (RToml.Token)b;
+						switch (token)
+						{
+						case RToml.Token.UQ_KEY:
+							key.key_begin = num5;
+							key.key_end = num6;
+							break;
+						case RToml.Token.TABLE_STD:
+							key.index = 0;
+							key.root_begin = num5;
+							key.root_end = num6;
+							break;
+						case RToml.Token.TABLE_ARR:
+							key.index++;
+							key.root_begin = num5;
+							key.root_end = num6;
+							break;
+						default:
+						{
+							RToml.Value value = new RToml.Value(token, num5, num6);
+							RToml.Key key2 = key;
+							KeyValuePair<RToml.Key, RToml.Value> keyValuePair = new KeyValuePair<RToml.Key, RToml.Value>(key2, value);
+							if (valueList.Size == valueList.Limit)
+							{
+								valueList.GrowTo(valueList.Limit * 2);
+							}
+							valueList.Pool[valueList.Size] = keyValuePair;
+							valueList.Size++;
+							break;
+						}
+						case RToml.Token.NONE:
+						case RToml.Token.IGNORE:
+						case RToml.Token.COMMENT:
+							break;
+						}
+						num2 = num3;
+					}
+					num4 = center_table[(num4 << minterms_log) | minterms_lookup[10]];
+					num++;
+					if (center_rel[num4] != 0)
+					{
+						num3 = num - center_rel[num4];
+						int num5 = num2;
+						int num6 = num3;
+						byte b = center_tag[num4];
+						RToml.Token token = (RToml.Token)b;
+						switch (token)
+						{
+						case RToml.Token.UQ_KEY:
+							key.key_begin = num5;
+							key.key_end = num6;
+							break;
+						case RToml.Token.TABLE_STD:
+							key.index = 0;
+							key.root_begin = num5;
+							key.root_end = num6;
+							break;
+						case RToml.Token.TABLE_ARR:
+							key.index++;
+							key.root_begin = num5;
+							key.root_end = num6;
+							break;
+						default:
+						{
+							RToml.Value value = new RToml.Value(token, num5, num6);
+							RToml.Key key2 = key;
+							KeyValuePair<RToml.Key, RToml.Value> keyValuePair = new KeyValuePair<RToml.Key, RToml.Value>(key2, value);
+							if (valueList.Size == valueList.Limit)
+							{
+								valueList.GrowTo(valueList.Limit * 2);
+							}
+							valueList.Pool[valueList.Size] = keyValuePair;
+							valueList.Size++;
+							break;
+						}
+						case RToml.Token.NONE:
+						case RToml.Token.IGNORE:
+						case RToml.Token.COMMENT:
+							break;
+						}
+						num2 = num3;
+					}
+					num4 = 0;
+				}
+				if (num < readOnlySpan.Length)
+				{
+					int num6 = num - 10;
+					int num5 = ((0 < num6) ? num6 : 0);
+					int num7 = num + 6;
+					int num8 = readOnlySpan.Length - 1;
+					num6 = ((num7 >= num8) ? num8 : num7);
+					string @string = Encoding.UTF8.GetString(readOnlySpan.Slice(num5, num - num5));
+					string string2 = Encoding.UTF8.GetString(readOnlySpan.Slice(num + 1, num6 - (num + 1)));
+					string message = PrintfModule.PrintFormatToStringThen(new PrintfFormat<string, Unit, string, string, Tuple<int, string, string, char, string, string>>("unexpected input at pos %P():%P()\n%P()|%P()|%P()%P()", new object[6]
+					{
+						num,
+						"\u001b[31m",
+						@string,
+						(char)readOnlySpan[num],
+						string2,
+						"\u001b[0m"
+					}, null));
+					throw new Exception(message);
+				}
+				UTF8Encoding uTF8Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+				RToml.Internal.ValueList<char> valueList2 = new RToml.Internal.ValueList<char>(128);
+				try
+				{
+					Dictionary<string, RToml.Value> dictionary = new Dictionary<string, RToml.Value>();
+					RToml.Internal.ValueList<KeyValuePair<RToml.Key, RToml.Value>> valueList3 = valueList;
+					Span<KeyValuePair<RToml.Key, RToml.Value>> span = valueList3.Pool.AsSpan(0, valueList3.Size);
+					for (num = 0; num < span.Length; num++)
+					{
+						KeyValuePair<RToml.Key, RToml.Value> keyValuePair = span[num];
+						key = keyValuePair.Key;
+						num2 = key.root_end - key.root_begin + (key.key_end - key.key_begin);
+						if (num2 + 22 >= valueList2.Limit)
+						{
+							valueList2.GrowTo(num2 + 22);
+						}
+						num3 = 0;
+						Span<char> chars = valueList2.Pool.AsSpan();
+						ReadOnlySpan<byte> bytes = readOnlySpan.Slice(key.key_begin, key.key_end - key.key_begin);
+						string key3;
+						if (key.root_end == 0)
+						{
+							bool flag = uTF8Encoding.TryGetChars(bytes, chars, out num3);
+							key3 = new string(chars.Slice(0, num3));
+						}
+						else
+						{
+							ReadOnlySpan<byte> bytes2 = readOnlySpan.Slice(key.root_begin, key.root_end - key.root_begin);
+							bool flag = uTF8Encoding.TryGetChars(bytes2, chars, out num3);
+							if (key.index > 0)
+							{
+								chars[num3] = '/';
+								Span<char> span2 = RToml.Internal.writePosDecimal(chars, key.index);
+								span2.CopyTo(chars.Slice(num3 + 1));
+								num3 = num3 + 1 + span2.Length;
+							}
+							chars[num3] = '.';
+							num4 = 0;
+							flag = uTF8Encoding.TryGetChars(bytes, chars.Slice(num3 + 1), out num4);
+							key3 = new string(chars[..(num3 + num4 + 1)]);
+						}
+						dictionary.Add(key3, keyValuePair.Value);
+					}
+					return dictionary;
+				}
+				finally
+				{
+					((IDisposable)valueList2/*cast due to .constrained prefix*/).Dispose();
+				}
+			}
+			finally
+			{
+				((IDisposable)valueList/*cast due to .constrained prefix*/).Dispose();
+			}
+		}
+
+		[Benchmark(58, "/home/ian/f/myrepos/r-toml/src/r-toml.benchmarks/Program.fs")]
+		public Dictionary<RToml.Key, RToml.Value> RTomlToKeyDictionary()
+		{
+			ReadOnlySpan<byte> readOnlySpan = Utf8@;
+			Dictionary<RToml.Key, RToml.Value> dictionary = new Dictionary<RToml.Key, RToml.Value>();
+			RToml.Key key = new RToml.Key(0, 0, 0, 0, 0);
+			int num = 0;
+			int num2 = 0;
+			int num3 = 0;
+			int num4 = Automata.toml.initial_state;
+			byte[] minterms_lookup = Automata.toml.minterms_lookup;
+			int minterms_log = Automata.toml.minterms_log;
+			ushort[] center_table = Automata.toml.center_table;
+			byte[] center_rel = Automata.toml.center_rel;
+			byte[] center_tag = Automata.toml.center_tag;
+			while (num4 != 0)
+			{
+				if (center_rel[num4] != 0)
+				{
+					num3 = num - center_rel[num4];
+					int num5 = num2;
+					int num6 = num3;
+					byte b = center_tag[num4];
+					RToml.Token token = (RToml.Token)b;
+					switch (token)
+					{
+					case RToml.Token.UQ_KEY:
+						key.key_begin = num5;
+						key.key_end = num6;
+						break;
+					case RToml.Token.TABLE_STD:
+						key.index = 0;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					case RToml.Token.TABLE_ARR:
+						key.index++;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					default:
+					{
+						RToml.Value value = new RToml.Value(token, num5, num6);
+						RToml.Key key2 = key;
+						dictionary.Add(key2, value);
+						break;
+					}
+					case RToml.Token.NONE:
+					case RToml.Token.IGNORE:
+					case RToml.Token.COMMENT:
+						break;
+					}
+					num2 = num3;
+				}
+				num4 = center_table[(num4 << minterms_log) | minterms_lookup[readOnlySpan[num]]];
+				num++;
+				if (num != readOnlySpan.Length)
+				{
+					continue;
+				}
+				if (center_rel[num4] != 0)
+				{
+					num3 = num - center_rel[num4];
+					int num5 = num2;
+					int num6 = num3;
+					byte b = center_tag[num4];
+					RToml.Token token = (RToml.Token)b;
+					switch (token)
+					{
+					case RToml.Token.UQ_KEY:
+						key.key_begin = num5;
+						key.key_end = num6;
+						break;
+					case RToml.Token.TABLE_STD:
+						key.index = 0;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					case RToml.Token.TABLE_ARR:
+						key.index++;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					default:
+					{
+						RToml.Value value = new RToml.Value(token, num5, num6);
+						RToml.Key key2 = key;
+						dictionary.Add(key2, value);
+						break;
+					}
+					case RToml.Token.NONE:
+					case RToml.Token.IGNORE:
+					case RToml.Token.COMMENT:
+						break;
+					}
+					num2 = num3;
+				}
+				num4 = center_table[(num4 << minterms_log) | minterms_lookup[10]];
+				num++;
+				if (center_rel[num4] != 0)
+				{
+					num3 = num - center_rel[num4];
+					int num5 = num2;
+					int num6 = num3;
+					byte b = center_tag[num4];
+					RToml.Token token = (RToml.Token)b;
+					switch (token)
+					{
+					case RToml.Token.UQ_KEY:
+						key.key_begin = num5;
+						key.key_end = num6;
+						break;
+					case RToml.Token.TABLE_STD:
+						key.index = 0;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					case RToml.Token.TABLE_ARR:
+						key.index++;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					default:
+					{
+						RToml.Value value = new RToml.Value(token, num5, num6);
+						RToml.Key key2 = key;
+						dictionary.Add(key2, value);
+						break;
+					}
+					case RToml.Token.NONE:
+					case RToml.Token.IGNORE:
+					case RToml.Token.COMMENT:
+						break;
+					}
+					num2 = num3;
+				}
+				num4 = 0;
+			}
+			if (num < readOnlySpan.Length)
+			{
+				int num6 = num - 10;
+				int num5 = ((0 < num6) ? num6 : 0);
+				int num7 = num + 6;
+				int num8 = readOnlySpan.Length - 1;
+				num6 = ((num7 >= num8) ? num8 : num7);
+				string @string = Encoding.UTF8.GetString(readOnlySpan.Slice(num5, num - num5));
+				string string2 = Encoding.UTF8.GetString(readOnlySpan.Slice(num + 1, num6 - (num + 1)));
+				string message = PrintfModule.PrintFormatToStringThen(new PrintfFormat<string, Unit, string, string, Tuple<int, string, string, char, string, string>>("unexpected input at pos %P():%P()\n%P()|%P()|%P()%P()", new object[6]
+				{
+					num,
+					"\u001b[31m",
+					@string,
+					(char)readOnlySpan[num],
+					string2,
+					"\u001b[0m"
+				}, null));
+				throw new Exception(message);
+			}
+			return dictionary;
+		}
+
+		[Benchmark(61, "/home/ian/f/myrepos/r-toml/src/r-toml.benchmarks/Program.fs")]
+		public KeyValuePair<RToml.Key, RToml.Value>[] RTomlToArray()
+		{
+			byte[] utf8@ = Utf8@;
+			ReadOnlySpan<byte> readOnlySpan = utf8@;
+			RToml.Internal.ValueList<KeyValuePair<RToml.Key, RToml.Value>> valueList = new RToml.Internal.ValueList<KeyValuePair<RToml.Key, RToml.Value>>(512);
+			RToml.Key key = new RToml.Key(0, 0, 0, 0, 0);
+			int num = 0;
+			int num2 = 0;
+			int num3 = 0;
+			int num4 = Automata.toml.initial_state;
+			byte[] minterms_lookup = Automata.toml.minterms_lookup;
+			int minterms_log = Automata.toml.minterms_log;
+			ushort[] center_table = Automata.toml.center_table;
+			byte[] center_rel = Automata.toml.center_rel;
+			byte[] center_tag = Automata.toml.center_tag;
+			while (num4 != 0)
+			{
+				if (center_rel[num4] != 0)
+				{
+					num3 = num - center_rel[num4];
+					int num5 = num2;
+					int num6 = num3;
+					byte b = center_tag[num4];
+					RToml.Token token = (RToml.Token)b;
+					switch (token)
+					{
+					case RToml.Token.UQ_KEY:
+						key.key_begin = num5;
+						key.key_end = num6;
+						break;
+					case RToml.Token.TABLE_STD:
+						key.index = 0;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					case RToml.Token.TABLE_ARR:
+						key.index++;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					default:
+					{
+						RToml.Value value = new RToml.Value(token, num5, num6);
+						RToml.Key key2 = key;
+						KeyValuePair<RToml.Key, RToml.Value> keyValuePair = new KeyValuePair<RToml.Key, RToml.Value>(key2, value);
+						if (valueList.Size == valueList.Limit)
+						{
+							valueList.GrowTo(valueList.Limit * 2);
+						}
+						valueList.Pool[valueList.Size] = keyValuePair;
+						valueList.Size++;
+						break;
+					}
+					case RToml.Token.NONE:
+					case RToml.Token.IGNORE:
+					case RToml.Token.COMMENT:
+						break;
+					}
+					num2 = num3;
+				}
+				num4 = center_table[(num4 << minterms_log) | minterms_lookup[readOnlySpan[num]]];
+				num++;
+				if (num != readOnlySpan.Length)
+				{
+					continue;
+				}
+				if (center_rel[num4] != 0)
+				{
+					num3 = num - center_rel[num4];
+					int num5 = num2;
+					int num6 = num3;
+					byte b = center_tag[num4];
+					RToml.Token token = (RToml.Token)b;
+					switch (token)
+					{
+					case RToml.Token.UQ_KEY:
+						key.key_begin = num5;
+						key.key_end = num6;
+						break;
+					case RToml.Token.TABLE_STD:
+						key.index = 0;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					case RToml.Token.TABLE_ARR:
+						key.index++;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					default:
+					{
+						RToml.Value value = new RToml.Value(token, num5, num6);
+						RToml.Key key2 = key;
+						KeyValuePair<RToml.Key, RToml.Value> keyValuePair = new KeyValuePair<RToml.Key, RToml.Value>(key2, value);
+						if (valueList.Size == valueList.Limit)
+						{
+							valueList.GrowTo(valueList.Limit * 2);
+						}
+						valueList.Pool[valueList.Size] = keyValuePair;
+						valueList.Size++;
+						break;
+					}
+					case RToml.Token.NONE:
+					case RToml.Token.IGNORE:
+					case RToml.Token.COMMENT:
+						break;
+					}
+					num2 = num3;
+				}
+				num4 = center_table[(num4 << minterms_log) | minterms_lookup[10]];
+				num++;
+				if (center_rel[num4] != 0)
+				{
+					num3 = num - center_rel[num4];
+					int num5 = num2;
+					int num6 = num3;
+					byte b = center_tag[num4];
+					RToml.Token token = (RToml.Token)b;
+					switch (token)
+					{
+					case RToml.Token.UQ_KEY:
+						key.key_begin = num5;
+						key.key_end = num6;
+						break;
+					case RToml.Token.TABLE_STD:
+						key.index = 0;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					case RToml.Token.TABLE_ARR:
+						key.index++;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					default:
+					{
+						RToml.Value value = new RToml.Value(token, num5, num6);
+						RToml.Key key2 = key;
+						KeyValuePair<RToml.Key, RToml.Value> keyValuePair = new KeyValuePair<RToml.Key, RToml.Value>(key2, value);
+						if (valueList.Size == valueList.Limit)
+						{
+							valueList.GrowTo(valueList.Limit * 2);
+						}
+						valueList.Pool[valueList.Size] = keyValuePair;
+						valueList.Size++;
+						break;
+					}
+					case RToml.Token.NONE:
+					case RToml.Token.IGNORE:
+					case RToml.Token.COMMENT:
+						break;
+					}
+					num2 = num3;
+				}
+				num4 = 0;
+			}
+			if (num < readOnlySpan.Length)
+			{
+				int num6 = num - 10;
+				int num5 = ((0 < num6) ? num6 : 0);
+				int num7 = num + 6;
+				int num8 = readOnlySpan.Length - 1;
+				num6 = ((num7 >= num8) ? num8 : num7);
+				string @string = Encoding.UTF8.GetString(readOnlySpan.Slice(num5, num - num5));
+				string string2 = Encoding.UTF8.GetString(readOnlySpan.Slice(num + 1, num6 - (num + 1)));
+				string message = PrintfModule.PrintFormatToStringThen(new PrintfFormat<string, Unit, string, string, Tuple<int, string, string, char, string, string>>("unexpected input at pos %P():%P()\n%P()|%P()|%P()%P()", new object[6]
+				{
+					num,
+					"\u001b[31m",
+					@string,
+					(char)readOnlySpan[num],
+					string2,
+					"\u001b[0m"
+				}, null));
+				throw new Exception(message);
+			}
+			RToml.Internal.ValueList<KeyValuePair<RToml.Key, RToml.Value>> valueList2 = valueList;
+			try
+			{
+				return valueList2.Pool.AsSpan(0, valueList2.Size).ToArray();
+			}
+			finally
+			{
+				((IDisposable)valueList2/*cast due to .constrained prefix*/).Dispose();
+			}
+		}
+
+		[Benchmark(64, "/home/ian/f/myrepos/r-toml/src/r-toml.benchmarks/Program.fs")]
+		public void RTomlToValueList()
+		{
+			ReadOnlySpan<byte> readOnlySpan = Utf8@;
+			RToml.Internal.ValueList<KeyValuePair<RToml.Key, RToml.Value>> valueList = new RToml.Internal.ValueList<KeyValuePair<RToml.Key, RToml.Value>>(512);
+			RToml.Key key = new RToml.Key(0, 0, 0, 0, 0);
+			int num = 0;
+			int num2 = 0;
+			int num3 = 0;
+			int num4 = Automata.toml.initial_state;
+			byte[] minterms_lookup = Automata.toml.minterms_lookup;
+			int minterms_log = Automata.toml.minterms_log;
+			ushort[] center_table = Automata.toml.center_table;
+			byte[] center_rel = Automata.toml.center_rel;
+			byte[] center_tag = Automata.toml.center_tag;
+			while (num4 != 0)
+			{
+				if (center_rel[num4] != 0)
+				{
+					num3 = num - center_rel[num4];
+					int num5 = num2;
+					int num6 = num3;
+					byte b = center_tag[num4];
+					RToml.Token token = (RToml.Token)b;
+					switch (token)
+					{
+					case RToml.Token.UQ_KEY:
+						key.key_begin = num5;
+						key.key_end = num6;
+						break;
+					case RToml.Token.TABLE_STD:
+						key.index = 0;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					case RToml.Token.TABLE_ARR:
+						key.index++;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					default:
+					{
+						RToml.Value value = new RToml.Value(token, num5, num6);
+						RToml.Key key2 = key;
+						KeyValuePair<RToml.Key, RToml.Value> keyValuePair = new KeyValuePair<RToml.Key, RToml.Value>(key2, value);
+						if (valueList.Size == valueList.Limit)
+						{
+							valueList.GrowTo(valueList.Limit * 2);
+						}
+						valueList.Pool[valueList.Size] = keyValuePair;
+						valueList.Size++;
+						break;
+					}
+					case RToml.Token.NONE:
+					case RToml.Token.IGNORE:
+					case RToml.Token.COMMENT:
+						break;
+					}
+					num2 = num3;
+				}
+				num4 = center_table[(num4 << minterms_log) | minterms_lookup[readOnlySpan[num]]];
+				num++;
+				if (num != readOnlySpan.Length)
+				{
+					continue;
+				}
+				if (center_rel[num4] != 0)
+				{
+					num3 = num - center_rel[num4];
+					int num5 = num2;
+					int num6 = num3;
+					byte b = center_tag[num4];
+					RToml.Token token = (RToml.Token)b;
+					switch (token)
+					{
+					case RToml.Token.UQ_KEY:
+						key.key_begin = num5;
+						key.key_end = num6;
+						break;
+					case RToml.Token.TABLE_STD:
+						key.index = 0;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					case RToml.Token.TABLE_ARR:
+						key.index++;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					default:
+					{
+						RToml.Value value = new RToml.Value(token, num5, num6);
+						RToml.Key key2 = key;
+						KeyValuePair<RToml.Key, RToml.Value> keyValuePair = new KeyValuePair<RToml.Key, RToml.Value>(key2, value);
+						if (valueList.Size == valueList.Limit)
+						{
+							valueList.GrowTo(valueList.Limit * 2);
+						}
+						valueList.Pool[valueList.Size] = keyValuePair;
+						valueList.Size++;
+						break;
+					}
+					case RToml.Token.NONE:
+					case RToml.Token.IGNORE:
+					case RToml.Token.COMMENT:
+						break;
+					}
+					num2 = num3;
+				}
+				num4 = center_table[(num4 << minterms_log) | minterms_lookup[10]];
+				num++;
+				if (center_rel[num4] != 0)
+				{
+					num3 = num - center_rel[num4];
+					int num5 = num2;
+					int num6 = num3;
+					byte b = center_tag[num4];
+					RToml.Token token = (RToml.Token)b;
+					switch (token)
+					{
+					case RToml.Token.UQ_KEY:
+						key.key_begin = num5;
+						key.key_end = num6;
+						break;
+					case RToml.Token.TABLE_STD:
+						key.index = 0;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					case RToml.Token.TABLE_ARR:
+						key.index++;
+						key.root_begin = num5;
+						key.root_end = num6;
+						break;
+					default:
+					{
+						RToml.Value value = new RToml.Value(token, num5, num6);
+						RToml.Key key2 = key;
+						KeyValuePair<RToml.Key, RToml.Value> keyValuePair = new KeyValuePair<RToml.Key, RToml.Value>(key2, value);
+						if (valueList.Size == valueList.Limit)
+						{
+							valueList.GrowTo(valueList.Limit * 2);
+						}
+						valueList.Pool[valueList.Size] = keyValuePair;
+						valueList.Size++;
+						break;
+					}
+					case RToml.Token.NONE:
+					case RToml.Token.IGNORE:
+					case RToml.Token.COMMENT:
+						break;
+					}
+					num2 = num3;
+				}
+				num4 = 0;
+			}
+			if (num < readOnlySpan.Length)
+			{
+				int num6 = num - 10;
+				int num5 = ((0 < num6) ? num6 : 0);
+				int num7 = num + 6;
+				int num8 = readOnlySpan.Length - 1;
+				num6 = ((num7 >= num8) ? num8 : num7);
+				string @string = Encoding.UTF8.GetString(readOnlySpan.Slice(num5, num - num5));
+				string string2 = Encoding.UTF8.GetString(readOnlySpan.Slice(num + 1, num6 - (num + 1)));
+				string message = PrintfModule.PrintFormatToStringThen(new PrintfFormat<string, Unit, string, string, Tuple<int, string, string, char, string, string>>("unexpected input at pos %P():%P()\n%P()|%P()|%P()%P()", new object[6]
+				{
+					num,
+					"\u001b[31m",
+					@string,
+					(char)readOnlySpan[num],
+					string2,
+					"\u001b[0m"
+				}, null));
+				throw new Exception(message);
+			}
+			using (valueList)
+			{
+			}
+		}
+
+		[Benchmark(69, "/home/ian/f/myrepos/r-toml/src/r-toml.benchmarks/Program.fs")]
+		public int RTomlCountSum()
+		{
+			int num = 0;
+			ReadOnlySpan<byte> readOnlySpan = Utf8@;
+			RToml.Key key = new RToml.Key(0, 0, 0, 0, 0);
+			int num2 = 0;
+			int num3 = 0;
+			int num4 = 0;
+			int num5 = Automata.toml.initial_state;
+			byte[] minterms_lookup = Automata.toml.minterms_lookup;
+			int minterms_log = Automata.toml.minterms_log;
+			ushort[] center_table = Automata.toml.center_table;
+			byte[] center_rel = Automata.toml.center_rel;
+			byte[] center_tag = Automata.toml.center_tag;
+			while (num5 != 0)
+			{
+				if (center_rel[num5] != 0)
+				{
+					num4 = num2 - center_rel[num5];
+					int num6 = num3;
+					int num7 = num4;
+					byte b = center_tag[num5];
+					RToml.Token token = (RToml.Token)b;
+					switch (token)
+					{
+					case RToml.Token.UQ_KEY:
+						key.key_begin = num6;
+						key.key_end = num7;
+						break;
+					case RToml.Token.TABLE_STD:
+						key.index = 0;
+						key.root_begin = num6;
+						key.root_end = num7;
+						break;
+					case RToml.Token.TABLE_ARR:
+						key.index++;
+						key.root_begin = num6;
+						key.root_end = num7;
+						break;
+					default:
+						if (new RToml.Value(token, num6, num7).kind == RToml.Token.TRUE)
+						{
+							num++;
+						}
+						break;
+					case RToml.Token.NONE:
+					case RToml.Token.IGNORE:
+					case RToml.Token.COMMENT:
+						break;
+					}
+					num3 = num4;
+				}
+				num5 = center_table[(num5 << minterms_log) | minterms_lookup[readOnlySpan[num2]]];
+				num2++;
+				if (num2 != readOnlySpan.Length)
+				{
+					continue;
+				}
+				if (center_rel[num5] != 0)
+				{
+					num4 = num2 - center_rel[num5];
+					int num6 = num3;
+					int num7 = num4;
+					byte b = center_tag[num5];
+					RToml.Token token = (RToml.Token)b;
+					switch (token)
+					{
+					case RToml.Token.UQ_KEY:
+						key.key_begin = num6;
+						key.key_end = num7;
+						break;
+					case RToml.Token.TABLE_STD:
+						key.index = 0;
+						key.root_begin = num6;
+						key.root_end = num7;
+						break;
+					case RToml.Token.TABLE_ARR:
+						key.index++;
+						key.root_begin = num6;
+						key.root_end = num7;
+						break;
+					default:
+						if (new RToml.Value(token, num6, num7).kind == RToml.Token.TRUE)
+						{
+							num++;
+						}
+						break;
+					case RToml.Token.NONE:
+					case RToml.Token.IGNORE:
+					case RToml.Token.COMMENT:
+						break;
+					}
+					num3 = num4;
+				}
+				num5 = center_table[(num5 << minterms_log) | minterms_lookup[10]];
+				num2++;
+				if (center_rel[num5] != 0)
+				{
+					num4 = num2 - center_rel[num5];
+					int num6 = num3;
+					int num7 = num4;
+					byte b = center_tag[num5];
+					RToml.Token token = (RToml.Token)b;
+					switch (token)
+					{
+					case RToml.Token.UQ_KEY:
+						key.key_begin = num6;
+						key.key_end = num7;
+						break;
+					case RToml.Token.TABLE_STD:
+						key.index = 0;
+						key.root_begin = num6;
+						key.root_end = num7;
+						break;
+					case RToml.Token.TABLE_ARR:
+						key.index++;
+						key.root_begin = num6;
+						key.root_end = num7;
+						break;
+					default:
+						if (new RToml.Value(token, num6, num7).kind == RToml.Token.TRUE)
+						{
+							num++;
+						}
+						break;
+					case RToml.Token.NONE:
+					case RToml.Token.IGNORE:
+					case RToml.Token.COMMENT:
+						break;
+					}
+					num3 = num4;
+				}
+				num5 = 0;
+			}
+			if (num2 < readOnlySpan.Length)
+			{
+				int num7 = num2 - 10;
+				int num6 = ((0 < num7) ? num7 : 0);
+				int num8 = num2 + 6;
+				int num9 = readOnlySpan.Length - 1;
+				num7 = ((num8 >= num9) ? num9 : num8);
+				string @string = Encoding.UTF8.GetString(readOnlySpan.Slice(num6, num2 - num6));
+				string string2 = Encoding.UTF8.GetString(readOnlySpan.Slice(num2 + 1, num7 - (num2 + 1)));
+				string message = PrintfModule.PrintFormatToStringThen(new PrintfFormat<string, Unit, string, string, Tuple<int, string, string, char, string, string>>("unexpected input at pos %P():%P()\n%P()|%P()|%P()%P()", new object[6]
+				{
+					num2,
+					"\u001b[31m",
+					@string,
+					(char)readOnlySpan[num2],
+					string2,
+					"\u001b[0m"
+				}, null));
+				throw new Exception(message);
+			}
+			return num;
+		}
+	}
+
+	[CompilationMapping(SourceConstructFlags.Value)]
+	internal static Summary arg@1 => $Program.arg@1;
+}
+namespace <StartupCode$r-toml-benchmarks>
+{
+	internal static class $Program
+	{
+		[DebuggerBrowsable(DebuggerBrowsableState.Never)]
+		internal static Summary arg@1;
+
+		[DebuggerBrowsable(DebuggerBrowsableState.Never)]
+		[CompilerGenerated]
+		[DebuggerNonUserCode]
+		internal static int init@;
+
+		public static void main@()
+		{
+			arg@1 = BenchmarkRunner.Run<Program.Benchmarks>();
+		}
+	}
+}
+namespace <StartupCode$r-toml-benchmarks>.$.NETCoreApp,Version=v9.0
+{
+	internal static class AssemblyAttributes
+	{
+	}
+}
+namespace <StartupCode$r-toml-benchmarks>.$R-toml.benchmarks
+{
+	internal static class AssemblyInfo
+	{
+	}
+}

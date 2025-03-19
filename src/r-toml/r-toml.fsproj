@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>RToml</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- show all performance related warnings -->
+    <WarningLevel>5</WarningLevel>
+    <WarnOn>$(NoWarn);21;1182;3180;52;3517;3366;3387</WarnOn>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PackageOutputPath>./nupkg</PackageOutputPath>
+    <Authors>ieviev</Authors>
+    <Title>$(ProjectName)</Title>
+    <Version>0.0.18</Version>
+    <RepositoryUrl>https://github.com/ieviev/r-toml</RepositoryUrl>
+    <PackageReadmeFile>content/readme.md</PackageReadmeFile>
+    <PackageLicenseFile>content/LICENSE</PackageLicenseFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="..\..\readme.md" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Automata.fs" Hidden="true" />
+    <Compile Include="Library.fs" />
+  </ItemGroup>
+</Project>
