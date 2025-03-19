@@ -102,29 +102,6 @@ module Internal =
 
     let inline enum v = LanguagePrimitives.EnumOfValue v
 
-    let inline check_null_static
-        (on_token: int -> int -> Token -> unit)
-        (nmask: byte)
-        (null_tags_rel_map: Automata.MaskTagRel[][])
-        (nulls_id: byte)
-        (pos: int32)
-        (prev: byref<int>)
-        =
-        let matches = null_tags_rel_map[int nulls_id]
-        let mutable i = 0
-
-        while i < matches.Length do
-            if matches[i].mask &&& nmask <> 0uy then
-                let endpos = pos - int matches[i].rel
-
-                if matches[i].tag > 2uy then
-                    on_token prev endpos (enum matches[i].tag)
-
-                prev <- endpos
-
-            i <- i + 1
-
-
     /// memory pooled array
     /// supports enumeration with for loops or .AsSpan()
     [<Struct; NoComparison>]

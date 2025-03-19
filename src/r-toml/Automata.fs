@@ -1,23 +1,11 @@
-// this file has been generated externally
+// this file has been generated externally,
+// the tool to used generate this is not open source
 
 module Automata
 #nowarn "1253"
 #nowarn "3391"
 #nowarn "FS3517"
 open System
-
-[<Struct>]
-type MaskTagRel = {
-    mask: byte
-    tag: byte
-    rel: byte
-} with
-
-    static member inline op_Implicit((mask, tag, rel): int * int * int) : MaskTagRel = {
-        mask = byte mask
-        tag = byte tag
-        rel = byte rel
-    }
 
 [<Sealed>]
 type DFA
