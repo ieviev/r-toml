@@ -213,7 +213,7 @@ module Internal =
             String(bufspan.Slice(0, end1))
 
 
-    let inline callbackToken
+    let inline onToken
         (key: byref<Key>)
         (prev: int)
         (nextpos: int)
@@ -251,102 +251,92 @@ type Key with
         Internal.readKeyAsString (encoder, &key_buffer, this, bytes)
 
 
-[<AbstractClass; Sealed>]
-type Parse =
 
-    static member inline stream
-        (data: ReadOnlySpan<byte>,[<InlineIfLambda>] on_key_value: Key -> Value -> unit)
-        =
-        let mutable currentKey = {
-            index = 0
-            root_begin = 0
-            root_end = 0
-            key_begin = 0
-            key_end = 0
-        }
+let inline stream
+    (data: ReadOnlySpan<byte>,[<InlineIfLambda>] on_key_value: Key -> Value -> unit)
+    =
+    let mutable currentKey = {
+        index = 0
+        root_begin = 0
+        root_end = 0
+        key_begin = 0
+        key_end = 0
+    }
 
-        Automata.DFA.lex
-            Automata.toml
-            data
-            (fun s e v ->
-                Internal.callbackToken
-                    &currentKey
-                    s
-                    e
-                    (LanguagePrimitives.EnumOfValue v)
-                    (fun v -> on_key_value currentKey v)
-            )
-            
+    Automata.DFA.lex
+        Automata.toml
+        data
+        (fun s e v ->
+            Internal.onToken
+                &currentKey
+                s
+                e
+                (LanguagePrimitives.EnumOfValue v)
+                (fun v -> on_key_value currentKey v)
+        )
+        
+/// IMPORTANT: dispose the ValueList after use
+let inline toValueList(data: ReadOnlySpan<byte>) : Internal.ValueList<_> =
+    let mutable d =
+        new Internal.ValueList<System.Collections.Generic.KeyValuePair<Key, Value>> 512
 
-
-    /// IMPORTANT: dispose the ValueList after use
-    static member inline toValueList(data: ReadOnlySpan<byte>) : Internal.ValueList<_> =
-        let mutable d =
-            new Internal.ValueList<System.Collections.Generic.KeyValuePair<Key, Value>> 512
-
-        Parse.stream (
-            data,
-            (fun k v ->
-                Internal.ValueList.add (
-                    &d,
-                    System.Collections.Generic.KeyValuePair(k, v)
-                )
+    stream (
+        data,
+        (fun k v ->
+            Internal.ValueList.add (
+                &d,
+                System.Collections.Generic.KeyValuePair(k, v)
             )
         )
+    )
 
-        d
+    d
 
-    /// does not convert keys to strings but keeps original Key struct
-    static member inline toKeyDictionary(data: ReadOnlySpan<byte>) =
-        let mutable d: Collections.Generic.Dictionary<Key, Value> =
-            Collections.Generic.Dictionary()
+/// does not convert keys to strings but keeps original Key struct
+let inline toKeyDictionary(data: ReadOnlySpan<byte>) =
+    let mutable d: Collections.Generic.Dictionary<Key, Value> =
+        Collections.Generic.Dictionary()
 
-        Parse.stream (data,(fun k v -> d.Add(k, v)))
-        d
+    stream (data,(fun k v -> d.Add(k, v)))
+    d
 
-    static member inline toArray(data: ReadOnlySpan<byte>) =
-        let mutable vlist = Parse.toValueList data
-        let arr = vlist.AsSpan().ToArray()
-        vlist.Dispose()
-        arr
+let inline toArray(data: ReadOnlySpan<byte>) =
+    let mutable vlist = toValueList data
+    let arr = vlist.AsSpan().ToArray()
+    vlist.Dispose()
+    arr
 
 
-    static member inline toDictionary(data: ReadOnlySpan<byte>) =
-        let mutable tmp =
-            new Internal.ValueList<System.Collections.Generic.KeyValuePair<Key, Value>> 512
+let inline toDictionary(data: ReadOnlySpan<byte>) =
+    let mutable tmp =
+        new Internal.ValueList<System.Collections.Generic.KeyValuePair<Key, Value>> 512
 
-        Parse.stream (
-            data,
-            (fun k v ->
-                Internal.ValueList.add (
-                    &tmp,
-                    System.Collections.Generic.KeyValuePair(k, v)
-                )
+    stream (
+        data,
+        (fun k v ->
+            Internal.ValueList.add (
+                &tmp,
+                System.Collections.Generic.KeyValuePair(k, v)
             )
         )
+    )
 
-        let encoder =
-            System.Text.UTF8Encoding(
-                encoderShouldEmitUTF8Identifier = false,
-                throwOnInvalidBytes = true
-            )
+    let encoder =
+        System.Text.UTF8Encoding(
+            encoderShouldEmitUTF8Identifier = false,
+            throwOnInvalidBytes = true
+        )
 
-        let mutable key_buffer = new Internal.ValueList<char> 128
+    let mutable key_buffer = new Internal.ValueList<char> 128
 
-        let dictionary = Collections.Generic.Dictionary()
+    let dictionary = Collections.Generic.Dictionary()
 
-        for entry in Internal.ValueList.toSpan tmp do
-            dictionary.Add(
-                Internal.readKeyAsString (encoder, &key_buffer, entry.Key, data),
-                entry.Value
-            )
-        // avoid try with block
-        tmp.Dispose()
-        key_buffer.Dispose()
-        dictionary
-
-    static member inline toDictionary(data: byte[]) =
-        Parse.toDictionary (ReadOnlySpan<byte>.op_Implicit data)
-
-    static member inline toArray(data: byte[]) =
-        Parse.toArray (ReadOnlySpan<byte>.op_Implicit data)
+    for entry in Internal.ValueList.toSpan tmp do
+        dictionary.Add(
+            Internal.readKeyAsString (encoder, &key_buffer, entry.Key, data),
+            entry.Value
+        )
+    // avoid try with block
+    tmp.Dispose()
+    key_buffer.Dispose()
+    dictionary

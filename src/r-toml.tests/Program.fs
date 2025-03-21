@@ -1,6 +1,7 @@
 ﻿open System.Text
 open Expecto
 open System
+#nowarn "3391"
 
 let sample1 =
         "# some comment
@@ -42,21 +43,21 @@ let testRoot =
     testList "root" [
         test "bad toml 1" {
             Expect.throws
-                (fun _ -> RToml.Parse.toDictionary ("[server]]\na = 1"B) |> ignore)
+                (fun _ -> RToml.toDictionary ("[server]]\na = 1"B) |> ignore)
                 "invalid toml should throw"
         }
         test "bad toml 2" {
             Expect.throws
-                (fun _ -> RToml.Parse.toDictionary ("[serv/er]]\na = 1"B) |> ignore)
+                (fun _ -> RToml.toDictionary ("[serv/er]]\na = 1"B) |> ignore)
                 "invalid toml should throw"
         }
         test "ok toml 1" {
             let data = "[server]\na = 1"B
-            let d = RToml.Parse.toDictionary "[server]\na = 1"B
+            let d = RToml.toDictionary "[server]\na = 1"B
             Expect.equal (d["server.a"].ToInt(data)) 1 "not equal"
         }
         test "all cases" {
-            let d = RToml.Parse.toDictionary sample1
+            let d = RToml.toDictionary sample1
             let eq key fn v = Expect.equal (fn (d[key])) v "not equal"
             eq "person.boolean" (fun v -> v.ToBool()) true
             eq "person.boolean2" (fun v -> v.ToBool()) false

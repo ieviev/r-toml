@@ -6,7 +6,6 @@ open System.IO
 open BenchmarkDotNet.Running
 open System.Runtime.CompilerServices
 open System.Collections.Generic
-open RToml
 
 #nowarn "3391"
 
@@ -53,23 +52,23 @@ type Benchmarks() =
     member this.TomlynUtf8() = Tomlyn.Toml.Parse this.Utf8
 
     [<Benchmark>]
-    member this.RTomlToDictionary() = Parse.toDictionary this.Utf8
+    member this.RTomlToDictionary() = RToml.toDictionary this.Utf8
 
     [<Benchmark>]
-    member this.RTomlToKeyDictionary() = Parse.toKeyDictionary this.Utf8
+    member this.RTomlToKeyDictionary() = RToml.toKeyDictionary this.Utf8
 
     [<Benchmark>]
-    member this.RTomlToArray() = Parse.toArray this.Utf8
+    member this.RTomlToArray() = RToml.toArray this.Utf8
 
     [<Benchmark>]
     member this.RTomlToValueList() =
-        let pooled_list = Parse.toValueList this.Utf8
+        let pooled_list = RToml.toValueList this.Utf8
         pooled_list.Dispose()
 
     [<Benchmark>]
     member this.RTomlCountSum() =
         let mutable count = 0
-        Parse.stream (
+        RToml.stream (
             this.Utf8,
             (fun _ v ->
                 if v.kind = RToml.Token.TRUE then

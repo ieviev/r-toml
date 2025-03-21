@@ -32,19 +32,18 @@ let toml : byte[] = "
 port = 8080
 hostname = 'abc'
 "B
-let dictionary = RToml.Parse.toDictionary(toml)
+let dictionary = RToml.toDictionary(toml)
 dictionary["server.port"].kind          // INT
 dictionary["server.port"].ToInt(toml)   // 8080
 
 // or any of the other formats
-let array = RToml.Parse.toArray(toml)
+let array = RToml.toArray(toml)
 let valuelist = 
-    use vlist = RToml.Parse.toValueList(toml)
-    for v in vlist do 
-        //.. do something
-let dictionary2 = RToml.Parse.toKeyDictionary(toml)
+    use vlist = RToml.toValueList(toml)
+    for v in vlist do () //.. do something
+let dictionary2 = RToml.toKeyDictionary(toml)
 // or iterate over the key-value pairs
-Parse.stream (
+RToml.stream (
     toml,
     (fun key value ->
         if value.kind = Token.TRUE then
