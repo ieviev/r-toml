@@ -42,13 +42,13 @@ type Value = {
 
     member inline this.ToBool() : bool =
         if not (this.kind = Token.TRUE || this.kind = Token.FALSE) then
-            failwith $"expected bool, got {this.kind}"
+            failwith $"invalid token kind: {this.kind}"
 
         this.kind = Token.TRUE
 
     member inline this.ToInt(data: ReadOnlySpan<byte>) : int =
         if this.kind <> Token.INT then
-            failwith $"expected int, got {this.kind}"
+            failwith $"invalid token kind: {this.kind}"
 
         let slice = data.Slice(this.pos_begin, this.pos_end - this.pos_begin)
         System.Int32.Parse slice
@@ -60,18 +60,18 @@ type Value = {
             let slice = data.Slice(this.pos_begin, this.pos_end - this.pos_begin)
             System.Text.Encoding.UTF8.GetString slice
         | Token.ESC_STR -> failwith "this string needs to be escaped"
-        | _ -> failwith $"expected string, got {this.kind}"
+        | _ -> failwith $"invalid token kind: {this.kind}"
 
     member inline this.ToFloat(data: ReadOnlySpan<byte>) : float =
         if this.kind <> Token.FLOAT then
-            failwith $"expected int, got {this.kind}"
+            failwith $"invalid token kind: {this.kind}"
 
         let slice = data.Slice(this.pos_begin, this.pos_end - this.pos_begin)
         System.Double.Parse slice
 
     member inline this.ToDateTimeOffset(data: ReadOnlySpan<byte>) : DateTimeOffset =
         if this.kind <> Token.DATE then
-            failwith $"expected datetimeoffset, got {this.kind}"
+            failwith $"invalid token kind: {this.kind}"
 
         let slice = data.Slice(this.pos_begin, this.pos_end - this.pos_begin)
         // is there a way to do this without converting .net str
