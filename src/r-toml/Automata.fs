@@ -21,10 +21,21 @@ module DFA =
     let inline dfa_delta(curr_state: ^a, mtlog: int32, mt: ^a) =
         curr_state <<< mtlog ||| mt
 
+    let throw_error pos (data: ReadOnlySpan<byte>) = 
+        let startp = max 0 (pos - 10)
+        let endp = min (pos + 6) (data.Length - 1)
+        let err_slice = 
+            try System.Text.Encoding.UTF8.GetString(data.Slice(startp, endp))
+            with e -> failwith $"failed at pos {pos} {e}: [invalid utf8]"    
+        // pos is location of invalid input +-2
+        // this gives the region where the automaton failed
+        failwith $"failed at pos {pos}: {err_slice.ToString()}"
+        
+
     let inline lex
-        ([<InlineIfLambda>] on_tag: int -> int -> byte -> unit)
         (dfa: DFA)
         (data: ReadOnlySpan<byte>)
+        ([<InlineIfLambda>] on_tag: int -> int -> byte -> unit)
         =
         let mutable pos = 0
         let mutable prev = 0
@@ -79,20 +90,8 @@ module DFA =
 
                 curr <- 0
         // checking for parsing error
-        if pos < data.Length then
-            let startp = max 0 (pos - 10)
-            let endp = min (pos + 6) (data.Length - 1)
-            let ansi_red_cursor = "\x1b[31m"
-            let ansi_reset = "\x1b[0m"
-
-            let prevs =
-                System.Text.Encoding.UTF8.GetString(data.Slice(startp, pos - startp))
-
-            let nexts =
-                System.Text.Encoding.UTF8.GetString(data.Slice(pos + 1, endp - (pos + 1)))
-
-            failwith
-                $"unexpected input at pos {pos}:{ansi_red_cursor}\n{prevs}|{char data[pos]}|{nexts}{ansi_reset}"
+        if pos <= data.Length then
+            throw_error pos data
 
 
 let toml = DFA(

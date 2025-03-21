@@ -74,7 +74,10 @@ type Value = {
             failwith $"expected datetimeoffset, got {this.kind}"
 
         let slice = data.Slice(this.pos_begin, this.pos_end - this.pos_begin)
-        System.DateTimeOffset.Parse(slice.ToString())
+        // is there a way to do this without converting .net str
+        let dotnetstring = System.Text.Encoding.UTF8.GetString(slice)
+        System.DateTimeOffset.Parse(dotnetstring)
+        
 
 [<Struct>]
 type Key = {
@@ -96,10 +99,6 @@ type Key = {
 /// this is not really "internal" for compiler inlining purposes
 module Internal =
     open System.Buffers
-
-    let inline utf8 (span: ReadOnlySpan<byte>) =
-        System.Text.Encoding.UTF8.GetString span
-
     let inline enum v = LanguagePrimitives.EnumOfValue v
 
     /// memory pooled array
@@ -164,16 +163,15 @@ module Internal =
 
     /// uses the end of the buffer to write the digit
     let writePosDecimal (chars: Span<char>) (i: int) =
+        assert (i > 0)
         let mutable q = i
         let mutable pos = chars.Length - 1
         let mutable rem = 0
-
         while q <> 0 do
             q <- Math.DivRem(q, 10, &rem)
             chars[pos] <- char (rem + 48)
             pos <- pos - 1
-
-        chars.Slice(pos - 1)
+        chars.Slice(pos + 1)
 
     // this should ideally be a transducer but
     // but it's still better than default interpolation
@@ -257,7 +255,7 @@ type Key with
 type Parse =
 
     static member inline stream
-        ([<InlineIfLambda>] on_key_value: Key -> Value -> unit, data: ReadOnlySpan<byte>)
+        (data: ReadOnlySpan<byte>,[<InlineIfLambda>] on_key_value: Key -> Value -> unit)
         =
         let mutable currentKey = {
             index = 0
@@ -268,6 +266,8 @@ type Parse =
         }
 
         Automata.DFA.lex
+            Automata.toml
+            data
             (fun s e v ->
                 Internal.callbackToken
                     &currentKey
@@ -276,8 +276,7 @@ type Parse =
                     (LanguagePrimitives.EnumOfValue v)
                     (fun v -> on_key_value currentKey v)
             )
-            Automata.toml
-            data
+            
 
 
     /// IMPORTANT: dispose the ValueList after use
@@ -286,13 +285,13 @@ type Parse =
             new Internal.ValueList<System.Collections.Generic.KeyValuePair<Key, Value>> 512
 
         Parse.stream (
+            data,
             (fun k v ->
                 Internal.ValueList.add (
                     &d,
                     System.Collections.Generic.KeyValuePair(k, v)
                 )
-            ),
-            data
+            )
         )
 
         d
@@ -302,26 +301,28 @@ type Parse =
         let mutable d: Collections.Generic.Dictionary<Key, Value> =
             Collections.Generic.Dictionary()
 
-        Parse.stream ((fun k v -> d.Add(k, v)), data)
+        Parse.stream (data,(fun k v -> d.Add(k, v)))
         d
 
     static member inline toArray(data: ReadOnlySpan<byte>) =
-        use mutable vlist = Parse.toValueList data
-        vlist.AsSpan().ToArray()
+        let mutable vlist = Parse.toValueList data
+        let arr = vlist.AsSpan().ToArray()
+        vlist.Dispose()
+        arr
 
 
     static member inline toDictionary(data: ReadOnlySpan<byte>) =
-        use mutable tmp =
+        let mutable tmp =
             new Internal.ValueList<System.Collections.Generic.KeyValuePair<Key, Value>> 512
 
         Parse.stream (
+            data,
             (fun k v ->
                 Internal.ValueList.add (
                     &tmp,
                     System.Collections.Generic.KeyValuePair(k, v)
                 )
-            ),
-            data
+            )
         )
 
         let encoder =
@@ -330,7 +331,7 @@ type Parse =
                 throwOnInvalidBytes = true
             )
 
-        use mutable key_buffer = new Internal.ValueList<char> 128
+        let mutable key_buffer = new Internal.ValueList<char> 128
 
         let dictionary = Collections.Generic.Dictionary()
 
@@ -339,7 +340,9 @@ type Parse =
                 Internal.readKeyAsString (encoder, &key_buffer, entry.Key, data),
                 entry.Value
             )
-
+        // avoid try with block
+        tmp.Dispose()
+        key_buffer.Dispose()
         dictionary
 
     static member inline toDictionary(data: byte[]) =

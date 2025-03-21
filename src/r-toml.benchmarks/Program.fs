@@ -63,18 +63,18 @@ type Benchmarks() =
 
     [<Benchmark>]
     member this.RTomlToValueList() =
-        use pooled_list = Parse.toValueList this.Utf8
-        ()
+        let pooled_list = Parse.toValueList this.Utf8
+        pooled_list.Dispose()
 
     [<Benchmark>]
     member this.RTomlCountSum() =
         let mutable count = 0
         Parse.stream (
+            this.Utf8,
             (fun _ v ->
                 if v.kind = RToml.Token.TRUE then
                     count <- count + 1
-            ),
-            this.Utf8
+            )
         )
         count
 

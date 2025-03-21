@@ -14,4 +14,8 @@
     <ProjectReference Include="..\r-toml\r-toml.fsproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Expecto" Version="10.2.2" />
+  </ItemGroup>
+
 </Project>

@@ -8,7 +8,7 @@ Features and non-features:
 - Zero-copy: **does not allocate memory** unless requested
 - Stackless: collects absolutely **nothing on the stack**
 - Automata based: **reliable** and **optimal** (see the [benchmarks](/src/r-toml.benchmarks/Program.fs))
-- Inlining: [inlines lambdas](/src/r-toml.benchmarks/disassembly.txt) down at the call site, **no indirection** or virt-calls, no need to implement any interfaces.
+- Inlining: [inlines lambdas](/src/r-toml.benchmarks/disassembly.txt#L824) down at the call site, **no indirection** or virt-calls, no need to implement any interfaces.
 - Single file with **no dependencies**: no bloat, no enterprise coding practices, no folder hierarchies with circular references, no third party supply chain attacks.
 - Raw UTF8: no .NET char conversion, runs on bytes directly
 
@@ -56,18 +56,12 @@ Parse.stream (
 
 #### Supported types: 
 
-- keys and basic primitives: bool/int/float/string (including basic, literal and multiline strings)
-- datetime/datetimeoffset
-- tables (including with dots) `[entry]`, `[entry.inner]`, `[entry.inner...]`
-- arrays of tables:
-```toml
-[[products]]
-id = 1
-[[products]]
-id = 2 # ...
-```
-- typed depth 1 arrays of basic primitives: bool[]/int[]/float[]/string[]
-- comments (only at beginning of line for now)
+- keys and basic primitives: bool/int/float/string (including basic, literal and multiline strings) `true/false`,`10`,`0.005`, `'string'`
+- datetime/datetimeoffset `1979-05-27T07:32:00Z`
+- tables `[entry]`, `[entry.inner]`
+- arrays of tables `[[products]]`
+- typed arrays of basic primitives: bool[]/int[]/float[]/string[] `[1, 2, 3]`
+- comments (only at beginning of line for now) `# comment`
 
 #### Unsupported TOML types and features:
 
