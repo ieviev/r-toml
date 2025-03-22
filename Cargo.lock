@@ -333,7 +333,7 @@ dependencies = [
 
 [[package]]
 name = "r-toml"
-version = "0.1.0"
+version = "0.0.26"
 dependencies = [
  "criterion",
  "toml",

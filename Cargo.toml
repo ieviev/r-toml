@@ -1,10 +1,10 @@
 [package]
 name = "r-toml"
-version = "0.1.0"
+version = "0.0.26"
 edition = "2024"
 license = "MIT"
 description = "Regular subset of TOML"
-repository = "https://github.com/ieviev/r-toml/tree/main"
+repository = "https://github.com/ieviev/r-toml"
 readme = "./readme.md"
 include = [
     "src/**/*.rs",
