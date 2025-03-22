@@ -1,6 +1,8 @@
 # Regular subset of [TOML](https://toml.io/en/)
 
 <a href="https://www.nuget.org/packages/r-toml/"><img alt="Nuget" src="https://img.shields.io/nuget/v/r-toml"></a>
+<a href="https://crates.io/crates/r-toml"><img alt="Crates.io" src="https://img.shields.io/crates/v/r-toml"></a>
+
 
 Features and non-features: 
 - Simple **key-value** parser based on TOML spec (v1.0.0)
