@@ -112,3 +112,22 @@ let testRoot =
 
 [<EntryPoint>]
 let main argv = runTestsWithCLIArgs [] argv testRoot
+
+// testing native impl
+// #nowarn "9"
+// open System.Runtime.InteropServices
+// type r_toml_native_cb = delegate of unativeint * unativeint * byte -> unit
+
+// [<DllImport("/home/ian/f/myrepos/r-toml/target/release/libr_toml.so")>]
+// extern unativeint r_toml_stream(byte* ptr, unativeint len, r_toml_native_cb cb)
+
+// let a =
+//     let input = System.Text.Encoding.UTF8.GetBytes "a = 1\n"
+//     use ps = fixed &input[0]
+
+//     let endpos = r_toml_stream (
+//         ps,
+//         unativeint input.LongLength,
+//         r_toml_native_cb (fun a b c -> 
+//             stdout.WriteLine $"token{a}:{b}:{c}")
+//     )

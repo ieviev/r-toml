@@ -7,12 +7,15 @@ Features and non-features:
 - Streaming: performs actions **during parsing**
 - Zero-copy: **does not allocate memory** unless requested
 - Stackless: collects absolutely **nothing on the stack**
-- Automata based: **reliable** and **optimal** (see the [benchmarks](/src/r-toml.benchmarks/Program.fs))
+- Automata based: **reliable** and **optimal** (see [benchmarks in F#](/src/r-toml.benchmarks/Program.fs) and [benchmarks in Rust](/benches/rust_benchmark.rs))
 - Inlining: [inlines lambdas](/src/r-toml.benchmarks/disassembly.txt#L824) down at the call site, **no indirection** or virt-calls, no need to implement any interfaces.
 - Single file with **no dependencies**: no bloat, no enterprise coding practices, no folder hierarchies with circular references, no third party supply chain attacks.
-- Raw UTF8: no .NET char conversion, runs on bytes directly
+- Raw UTF8: no UTF16 conversion, runs on bytes directly
 
+#### F# benchmarks
 ![](data/benchmarks.png)
+#### Rust benchmarks
+![](data/benchmarks-rust.png)
 
 ### Spec and description: 
 
@@ -24,7 +27,7 @@ like strongly typed schemas in the editor.
 The TOML format has a beautiful property that nested types can be expressed 
 in a regular grammar, and this library takes advantage of that. It's been an experimental project on my shelf for a bit and there's still more things to add, but if you don't use any fancier features then it is usable already. Of course TOML was never meant to be a data storage format and this is misusing the original purpose but perhaps the fact that regular-toml can be parsed much faster may change your mind.
 
-#### basic usage
+#### basic usage (F#)
 
 ```fsharp
 let toml : byte[] = "
@@ -51,6 +54,26 @@ RToml.stream (
             printfn $"{keystr} at pos:{key.key_begin} is set to true"
     )
 )
+```
+#### basic usage (Rust)
+```rust
+fn main() {
+    let toml = b"
+[server]
+port = 8080
+hostname = 'abc'
+";
+    let map = r_toml::to_map(toml).unwrap();
+    dbg!(&map["server.port"].kind); // INT
+    dbg!(&map["server.port"].to_int(toml)); // Ok(8080)
+
+    // or iterate over key-value pairs
+    let mut key_buf = Vec::new();
+    r_toml::stream(toml, |k, v| {
+        println!("{} = {:?}", k.to_str(&mut key_buf, toml), v.kind);
+        key_buf.clear();
+    });
+}
 ```
 
 #### Supported types: 
@@ -155,7 +178,7 @@ as a visual example to how the input is processed into tokens see:
 - iterator for array types
 - depth 2 arrays of basic primitives: bool[][],int[][],float[][],string[][]
 - [toml compliance tests](https://github.com/toml-lang/compliance)
-- code-gen for other languages (Javascript and Rust in particular)
+- code-gen for other languages
 - array of tables deserialization into an iterator for convenience
 - string to tagged union deserialization
 - perf. comparisons with other serialization formats (json)

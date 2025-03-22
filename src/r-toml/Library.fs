@@ -194,10 +194,7 @@ module Internal =
 
         let len_u8 = (key.root_end - key.root_begin) + (key.key_end - key.key_begin)
 
-        if
-            (key.root_end - key.root_begin) + (key.key_end - key.key_begin) + 22
-            >= key_buffer.Limit
-        then
+        if len_u8 + 22 >= key_buffer.Limit then
             key_buffer.GrowTo(len_u8 + 22) // 22: 10 digits + 10 digits + . + .
 
         let mutable numchars = 0

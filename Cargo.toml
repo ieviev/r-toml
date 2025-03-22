@@ -1,0 +1,17 @@
+[package]
+name = "r-toml"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+bench = true
+crate-type = ['rlib', 'staticlib']
+path = "src/r-toml-rust/lib.rs"
+
+[dev-dependencies]
+criterion = "0.5.1"
+toml = "0.8.20"
+
+[[bench]]
+name = "rust_benchmark"
+harness = false
