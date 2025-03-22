@@ -17,8 +17,9 @@ fn one_test(c: &mut Criterion) {
 
     let data = builder;
 
-    let mut toml_group = c.benchmark_group("r");
+    let mut toml_group = c.benchmark_group("bench");
     toml_group.measurement_time(Duration::from_secs(15));
+    toml_group.sample_size(75);
     toml_group.throughput(Throughput::Bytes(data.len() as u64));
 
     toml_group.bench_with_input("toml::from_str", &data, |b, data| {
@@ -38,12 +39,19 @@ fn one_test(c: &mut Criterion) {
                 if v.kind == Token::TRUE {
                     count += 1;
                 }
-            });
+            })
+            .unwrap();
         });
     });
     toml_group.bench_with_input("r_toml::to_map", &data, |b, data| {
         b.iter(|| {
             let _ = r_toml::to_map(data.as_bytes()).expect("Failed to parse TOML");
+        });
+    });
+
+    toml_group.bench_with_input("r_toml::to_iter", &data, |b, data| {
+        b.iter(|| {
+            r_toml::to_iter(data.as_bytes()).for_each(|(_, _)| ());
         });
     });
 

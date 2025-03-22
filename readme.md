@@ -76,6 +76,10 @@ hostname = 'abc'
         println!("{} = {:?}", k.to_str(&mut key_buf, toml), v.kind);
         key_buf.clear();
     });
+    // iterator over (String,Value) for convenience
+    r_toml::to_iter(toml).for_each(|(k_string, v)| {
+        println!("{} = {:?}", k_string, v.kind);
+    });
 }
 ```
 

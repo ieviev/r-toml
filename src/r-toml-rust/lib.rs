@@ -1,11 +1,12 @@
 #![allow(non_camel_case_types)]
-use automata::lex;
+use automata::{KeyValueIterator, lex};
 use std::io::Write;
 use std::{collections::HashMap, mem::transmute};
 
 // the automaton has been generated externally
 // the tool to used generate the automaton is not open source
 pub mod automata {
+    use crate::Token;
 
     const CENTER_TABLE: &'static [u16] = &[
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -968,7 +969,7 @@ pub mod automata {
         ((curr_state) << (mtlog)) | (mt)
     }
 
-    pub fn lex(data: &[u8], mut on_tag: impl FnMut(usize, usize, u8)) -> usize {
+    pub fn lex(data: &[u8], mut on_tag: impl FnMut(usize, usize, u8)) -> Result<(), usize> {
         let mut pos: usize = 0;
         let mut prev: usize = 0;
         let mut nextpos: usize;
@@ -1007,7 +1008,153 @@ pub mod automata {
                 curr = 0;
             }
         }
-        pos
+        if pos <= data.len() { Err(pos) } else { Ok(()) }
+    }
+
+    // thought rust supported streaming iterators but turns out it does not.
+    // well then we will return Strings as keys instead
+    pub struct KeyValueIterator<'a> {
+        pos: usize,
+        state: usize,
+        prev: usize,
+        next: usize,
+        key: crate::Key,
+        key_buf: Vec<u8>,
+        data: &'a [u8],
+    }
+
+    impl<'a> KeyValueIterator<'a> {
+        pub(crate) fn new(data: &'a [u8]) -> Self {
+            KeyValueIterator {
+                pos: 0,
+                state: 2,
+                prev: 0,
+                next: 0,
+                data,
+                key: crate::Key {
+                    index: 0,
+                    root_begin: 0,
+                    root_end: 0,
+                    key_begin: 0,
+                    key_end: 0,
+                },
+                key_buf: Vec::new(),
+            }
+        }
+    }
+
+    impl<'a> KeyValueIterator<'a> {
+        fn on_key(&mut self, prev: usize, next: usize, tag: u8) -> Option<crate::Value> {
+            if tag >= 3 {
+                match unsafe { std::mem::transmute(tag) } {
+                    Token::UQ_KEY => {
+                        self.key.key_begin = prev;
+                        self.key.key_end = next;
+                        None
+                    }
+                    Token::TABLE_STD => {
+                        self.key.index = 0;
+                        self.key.root_begin = prev;
+                        self.key.root_end = next;
+                        None
+                    }
+                    Token::TABLE_ARR => {
+                        self.key.index = self.key.index + 1;
+                        self.key.root_begin = prev;
+                        self.key.root_end = next;
+                        None
+                    }
+                    token => {
+                        let value = crate::Value {
+                            kind: token,
+                            pos_begin: prev,
+                            pos_end: next,
+                        };
+                        Some(value)
+                    }
+                }
+            } else {
+                None
+            }
+        }
+        fn handle_end(&mut self) -> Option<(String, crate::Value)> {
+            if CENTER_REL[self.state] > 0 {
+                self.next = self.pos.saturating_sub(CENTER_REL[self.state] as usize);
+                if CENTER_TAG[self.state] >= 3 {
+                    if let Some(value) = self.on_key(self.prev, self.next, CENTER_TAG[self.state]) {
+                        let kstr = self.key.to_str(&mut self.key_buf, self.data).to_string();
+                        self.pos += 1;
+                        return Some((kstr, value));
+                    }
+                }
+                self.prev = self.next;
+            }
+
+            self.state = CENTER_TABLE
+                [dfa_delta(self.state, MT_LOG, MT_LOOKUP[b'\n' as usize] as usize)]
+                as usize;
+            self.pos += 1;
+
+            if CENTER_REL[self.state] > 0 {
+                self.next = self.pos.saturating_sub(CENTER_REL[self.state] as usize);
+                if CENTER_TAG[self.state] >= 3 {
+                    if let Some(value) = self.on_key(self.prev, self.next, CENTER_TAG[self.state]) {
+                        let kstr = self.key.to_str(&mut self.key_buf, self.data).to_string();
+                        return Some((kstr, value));
+                    }
+                }
+                self.prev = self.next;
+            }
+            self.state = 0;
+            None
+        }
+
+        fn step(&mut self) {
+            self.state = CENTER_TABLE[dfa_delta(
+                self.state,
+                MT_LOG,
+                MT_LOOKUP[self.data[self.pos] as usize] as usize,
+            )] as usize;
+            self.pos += 1;
+        }
+    }
+
+    impl<'a> Iterator for KeyValueIterator<'a> {
+        type Item = (String, crate::Value);
+
+        fn next(&mut self) -> Option<Self::Item> {
+            self.prev = self.next;
+            if self.pos >= self.data.len() {
+                return None;
+            }
+            if self.pos == self.data.len() - 1 {
+                return self.handle_end();
+            }
+
+            while self.state != 0 {
+                if CENTER_REL[self.state] > 0 {
+                    self.next = self.pos.saturating_sub(CENTER_REL[self.state] as usize);
+                    if CENTER_TAG[self.state] >= 3 {
+                        if let Some(value) =
+                            self.on_key(self.prev, self.next, CENTER_TAG[self.state])
+                        {
+                            let kstr = self.key.to_str(&mut self.key_buf, self.data).to_string();
+                            self.key_buf.clear();
+                            self.step();
+                            return Some((kstr, value));
+                        }
+                    };
+                    self.prev = self.next;
+                };
+
+                self.step();
+
+                if self.pos == self.data.len() {
+                    return self.handle_end();
+                }
+            }
+            None
+        }
     }
 }
 
@@ -1108,9 +1255,17 @@ impl Value {
             _ => Err(self.kind.clone()),
         }
     }
+    pub fn to_bool(&self) -> Result<bool, Token> {
+        match self.kind {
+            Token::TRUE => Ok(true),
+            Token::FALSE => Ok(false),
+            _ => Err(self.kind.clone()),
+        }
+    }
+    // can't have a datetime conversion otherwise i'd be lying about no dependencies
 }
 
-pub fn stream(data: &[u8], mut on_key_value: impl FnMut(&Key, Value)) -> usize {
+pub fn stream(data: &[u8], mut on_key_value: impl FnMut(&Key, Value)) -> Result<(), usize> {
     let mut key = Key {
         index: 0,
         root_begin: 0,
@@ -1125,7 +1280,6 @@ pub fn stream(data: &[u8], mut on_key_value: impl FnMut(&Key, Value)) -> usize {
                     key.key_begin = prev;
                     key.key_end = nextpos;
                 }
-
                 Token::TABLE_STD => {
                     key.index = 0;
                     key.root_begin = prev;
@@ -1149,11 +1303,20 @@ pub fn stream(data: &[u8], mut on_key_value: impl FnMut(&Key, Value)) -> usize {
     })
 }
 
-pub fn to_vec(data: &[u8]) -> Result<Vec<(Key, Value)>, usize> {
+pub fn to_vec(data: &[u8]) -> Result<Vec<(String, Value)>, usize> {
+    let mut result: Vec<(String, Value)> = Vec::with_capacity(128);
+    let mut key_buf = Vec::with_capacity(0);
+    stream(data, |k, v| {
+        result.push((k.to_str(&mut key_buf, data).to_string(), v));
+    })?;
+    Ok(result)
+}
+
+pub fn to_struct_vec(data: &[u8]) -> Result<Vec<(Key, Value)>, usize> {
     let mut result: Vec<(Key, Value)> = Vec::with_capacity(128);
     stream(data, |k, v| {
         result.push((k.clone(), v));
-    });
+    })?;
     Ok(result)
 }
 
@@ -1163,8 +1326,12 @@ pub fn to_map(data: &[u8]) -> Result<HashMap<String, Value>, usize> {
     stream(data, |k, v| {
         result.insert(k.to_str(&mut key_buf, data).to_string(), v);
         key_buf.clear();
-    });
+    })?;
     Ok(result)
+}
+
+pub fn to_iter(data: &[u8]) -> automata::KeyValueIterator {
+    KeyValueIterator::new(data)
 }
 
 // testing shared library
