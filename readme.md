@@ -47,7 +47,7 @@ RToml.stream (
     toml,
     (fun key value ->
         if value.kind = Token.TRUE then
-            let keystr = key.ToFullString toml // struct to string
+            let keystr = key.ToString toml // struct to string
             printfn $"{keystr} at pos:{key.key_begin} is set to true"
     )
 )

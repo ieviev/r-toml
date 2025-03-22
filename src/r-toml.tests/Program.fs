@@ -63,20 +63,20 @@ let testRoot =
             eq "person.boolean2" (fun v -> v.ToBool()) false
             eq "person.int" (fun v -> v.ToInt sample1) 1
             eq "person.float" (fun v -> v.ToFloat sample1) 0.005
-            eq "person.str_basic_e" (fun v -> v.ToStr(sample1)) ""
+            eq "person.str_basic_e" (fun v -> v.ToString(sample1)) ""
             eq "person.str_basic_esc" (fun v -> v.kind) RToml.Token.ESC_STR
-            eq "person.str_lit_esc" (fun v -> v.ToStr(sample1)) """afdf\nsd"""
-            eq "person.str_lit" (fun v -> v.ToStr(sample1)) """literal string"""
-            eq "person.str_lit_ml" (fun v -> v.ToStr(sample1)) "ml literal string\n"
+            eq "person.str_lit_esc" (fun v -> v.ToString(sample1)) """afdf\nsd"""
+            eq "person.str_lit" (fun v -> v.ToString(sample1)) """literal string"""
+            eq "person.str_lit_ml" (fun v -> v.ToString(sample1)) "ml literal string\n"
             eq "person.dateoffset" (fun v -> v.ToDateTimeOffset(sample1)) (System.DateTimeOffset.Parse("1979-05-27T07:32:00Z"))
             eq "person.int_arr" (fun v -> utf8 (sample1.AsSpan(v.pos_begin,v.pos_end - v.pos_begin))) "1, 2, 3"
             eq "person.str_arr" (fun v -> utf8 (sample1.AsSpan(v.pos_begin,v.pos_end - v.pos_begin))) "\"a\", \"b\", \"c\""
             eq "person.float_arr" (fun v -> utf8 (sample1.AsSpan(v.pos_begin,v.pos_end - v.pos_begin))) "0.1, 0.5, 0.6"
             eq "person.bool_arr" (fun v -> utf8 (sample1.AsSpan(v.pos_begin,v.pos_end - v.pos_begin))) "true, false, true"
             eq "children/1.id" (fun v -> v.ToInt sample1) 1
-            eq "children/1.name" (fun v -> v.ToStr sample1) "aaaa"
+            eq "children/1.name" (fun v -> v.ToString sample1) "aaaa"
             eq "children/2.id" (fun v -> v.ToInt sample1) 2
-            eq "children/2.name" (fun v -> v.ToStr sample1) "bbbb"
+            eq "children/2.name" (fun v -> v.ToString sample1) "bbbb"
         }
     ]
 

@@ -29,9 +29,14 @@ type Token =
 
 [<Struct; NoComparison>]
 type Value =
-    [<DefaultValue>] val mutable kind: Token
-    [<DefaultValue>] val mutable pos_begin: int
-    [<DefaultValue>] val mutable pos_end: int
+    [<DefaultValue>]
+    val mutable kind: Token
+
+    [<DefaultValue>]
+    val mutable pos_begin: int
+
+    [<DefaultValue>]
+    val mutable pos_end: int
 
     override this.ToString() = $"{this.kind}[{this.pos_begin}..]"
 
@@ -48,7 +53,7 @@ type Value =
         let slice = data.Slice(this.pos_begin, this.pos_end - this.pos_begin)
         System.Int32.Parse slice
 
-    member inline this.ToStr(data: ReadOnlySpan<byte>) : string =
+    member inline this.ToString(data: ReadOnlySpan<byte>) : string =
         match this.kind with
         | Token.EMPTYSTR -> ""
         | Token.VALID_STR ->
@@ -181,7 +186,7 @@ module Internal =
     // but it's still better than default interpolation
     let readKeyAsCharSpan
         (
-            encoder: UTF8Encoding,
+            encoding: UTF8Encoding,
             key_buffer: byref<ValueList<char>>,
             key: Key,
             bytes: ReadOnlySpan<byte>
@@ -200,12 +205,12 @@ module Internal =
         let key_s = bytes.Slice(key.key_begin, key.key_end - key.key_begin)
         // key only
         if key.root_end = 0 then
-            encoder.TryGetChars(key_s, bufspan, &numchars) |> ignore
+            encoding.TryGetChars(key_s, bufspan, &numchars) |> ignore
             bufspan.Slice(0, numchars)
         // root.key
         else
             let root = bytes.Slice(key.root_begin, key.root_end - key.root_begin)
-            encoder.TryGetChars(root, bufspan, &numchars) |> ignore
+            encoding.TryGetChars(root, bufspan, &numchars) |> ignore
 
             if key.index > 0 then
                 bufspan[numchars] <- '/'
@@ -215,7 +220,7 @@ module Internal =
 
             bufspan[numchars] <- '.'
             let mutable numchars2 = 0
-            encoder.TryGetChars(key_s, bufspan.Slice(numchars + 1), &numchars2) |> ignore
+            encoding.TryGetChars(key_s, bufspan.Slice(numchars + 1), &numchars2) |> ignore
             let mutable end1 = numchars + numchars2 + 1
             bufspan.Slice(0, end1)
 
@@ -239,21 +244,20 @@ module Internal =
             key.index <- key.index + 1
             key.root_begin <- prev
             key.root_end <- nextpos
-        | _ -> lambda (Value(kind=tag, pos_begin=prev, pos_end=nextpos))
+        | _ -> lambda (Value(kind = tag, pos_begin = prev, pos_end = nextpos))
 
 
 type Key with
     /// key struct to dot separated string
-    member this.ToFullString(bytes: ReadOnlySpan<byte>) =
-        let encoder =
+    member this.ToString(bytes: ReadOnlySpan<byte>) =
+        let encoding =
             UTF8Encoding(
                 encoderShouldEmitUTF8Identifier = false,
                 throwOnInvalidBytes = true
             )
 
         use mutable key_buffer = new Internal.ValueList<char> 128
-        Internal.readKeyAsCharSpan (encoder, &key_buffer, this, bytes)
-
+        String(Internal.readKeyAsCharSpan (encoding, &key_buffer, this, bytes))
 
 let inline stream
     (data: ReadOnlySpan<byte>, [<InlineIfLambda>] on_key_value: Key -> Value -> unit)
