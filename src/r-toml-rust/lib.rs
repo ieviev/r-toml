@@ -1,11 +1,10 @@
 #![allow(non_camel_case_types)]
+use automata::lex;
 use std::io::Write;
 use std::{collections::HashMap, mem::transmute};
 
-use automata::lex;
-
 // the automaton has been generated externally
-// the tool to used generate this is not open source
+// the tool to used generate the automaton is not open source
 pub mod automata {
 
     const CENTER_TABLE: &'static [u16] = &[
@@ -1168,7 +1167,7 @@ pub fn to_map(data: &[u8]) -> Result<HashMap<String, Value>, usize> {
     Ok(result)
 }
 
-// testing .so
+// testing shared library
 // pub type Callback = extern "C" fn(prev: usize, nextpos: usize, tag: u8);
 // #[unsafe(no_mangle)]
 // pub unsafe extern "C" fn r_toml_stream(ptr: *const u8, len: usize, cb: Callback) -> usize {

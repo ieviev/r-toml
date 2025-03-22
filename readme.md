@@ -10,7 +10,8 @@ Features and non-features:
 - Automata based: **reliable** and **optimal** (see [benchmarks in F#](/src/r-toml.benchmarks/Program.fs) and [benchmarks in Rust](/benches/rust_benchmark.rs))
 - Inlining: [inlines lambdas](/src/r-toml.benchmarks/disassembly.txt#L824) down at the call site, **no indirection** or virt-calls, no need to implement any interfaces.
 - Single file with **no dependencies**: no bloat, no enterprise coding practices, no folder hierarchies with circular references, no third party supply chain attacks.
-- Raw UTF8: no UTF16 conversion, runs on bytes directly
+- Raw UTF8: no .NET char conversion, runs on bytes directly
+- Implementations in F# and Rust
 
 #### F# benchmarks
 ![](data/benchmarks.png)
