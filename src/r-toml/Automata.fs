@@ -33,9 +33,9 @@ module DFA =
         
 
     let inline lex
+        ([<InlineIfLambda>] on_tag: int -> int -> byte -> unit)
         (dfa: DFA)
         (data: ReadOnlySpan<byte>)
-        ([<InlineIfLambda>] on_tag: int -> int -> byte -> unit)
         =
         let mutable pos = 0
         let mutable prev = 0
@@ -51,7 +51,8 @@ module DFA =
         while curr <> 0 do
             if center_rel[curr] > 0uy then
                 nextpos <- pos - int center_rel[curr]
-                on_tag prev nextpos (center_tag[curr])
+                if center_tag[curr] >= 3uy then
+                    on_tag prev nextpos (center_tag[curr])
                 prev <- nextpos
 
             curr <-
@@ -69,7 +70,8 @@ module DFA =
 
                 if center_rel[curr] > 0uy then
                     nextpos <- pos - int center_rel[curr]
-                    on_tag prev nextpos (center_tag[curr])
+                    if center_tag[curr] >= 3uy then
+                        on_tag prev nextpos (center_tag[curr])
                     prev <- nextpos
 
                 curr <-
@@ -85,7 +87,8 @@ module DFA =
 
                 if center_rel[curr] > 0uy then
                     nextpos <- pos - int center_rel[curr]
-                    on_tag prev nextpos (center_tag[curr])
+                    if center_tag[curr] >= 3uy then
+                        on_tag prev nextpos (center_tag[curr])
                     prev <- nextpos
 
                 curr <- 0

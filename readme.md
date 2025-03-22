@@ -38,10 +38,10 @@ dictionary["server.port"].ToInt(toml)   // 8080
 
 // or any of the other formats
 let array = RToml.toArray(toml)
+let array2 = RToml.toStructArray(toml)
 let valuelist = 
     use vlist = RToml.toValueList(toml)
     for v in vlist do () //.. do something
-let dictionary2 = RToml.toKeyDictionary(toml)
 // or iterate over the key-value pairs
 RToml.stream (
     toml,

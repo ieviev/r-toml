@@ -3,7 +3,9 @@
 #nowarn "FS3517"
 
 open System
+open System.Text
 open System.Runtime.CompilerServices
+open System.Collections.Generic
 
 type Token =
     | NONE = 0uy
@@ -25,20 +27,13 @@ type Token =
     | ARR1_BOOL = 16uy
     | ARR1_STR = 17uy
 
-[<NoComparison; Struct>]
-type Value = {
-    kind: Token
-    pos_begin: int
-    pos_end: int
-} with
+[<Struct; NoComparison>]
+type Value =
+    [<DefaultValue>] val mutable kind: Token
+    [<DefaultValue>] val mutable pos_begin: int
+    [<DefaultValue>] val mutable pos_end: int
 
     override this.ToString() = $"{this.kind}[{this.pos_begin}..]"
-
-    static member inline mk_value kind s e : Value = {
-        kind = kind
-        pos_begin = s
-        pos_end = e
-    }
 
     member inline this.ToBool() : bool =
         if not (this.kind = Token.TRUE || this.kind = Token.FALSE) then
@@ -75,18 +70,26 @@ type Value = {
 
         let slice = data.Slice(this.pos_begin, this.pos_end - this.pos_begin)
         // is there a way to do this without converting .net str
-        let dotnetstring = System.Text.Encoding.UTF8.GetString(slice)
-        System.DateTimeOffset.Parse(dotnetstring)
-        
+        System.DateTimeOffset.Parse(System.Text.Encoding.UTF8.GetString slice)
 
-[<Struct>]
-type Key = {
-    mutable index: int
-    mutable root_begin: int
-    mutable root_end: int
-    mutable key_begin: int
-    mutable key_end: int
-} with
+
+
+[<Struct; NoComparison>]
+type Key =
+    [<DefaultValue>]
+    val mutable index: int
+
+    [<DefaultValue>]
+    val mutable root_begin: int
+
+    [<DefaultValue>]
+    val mutable root_end: int
+
+    [<DefaultValue>]
+    val mutable key_begin: int
+
+    [<DefaultValue>]
+    val mutable key_end: int
 
     override this.ToString() =
         if this.root_end = 0 then
@@ -99,7 +102,6 @@ type Key = {
 /// this is not really "internal" for compiler inlining purposes
 module Internal =
     open System.Buffers
-    let inline enum v = LanguagePrimitives.EnumOfValue v
 
     /// memory pooled array
     /// supports enumeration with for loops or .AsSpan()
@@ -167,25 +169,30 @@ module Internal =
         let mutable q = i
         let mutable pos = chars.Length - 1
         let mutable rem = 0
+
         while q <> 0 do
             q <- Math.DivRem(q, 10, &rem)
             chars[pos] <- char (rem + 48)
             pos <- pos - 1
+
         chars.Slice(pos + 1)
 
     // this should ideally be a transducer but
     // but it's still better than default interpolation
-    let inline readKeyAsString
+    let readKeyAsCharSpan
         (
-            encoder: System.Text.UTF8Encoding,
+            encoder: UTF8Encoding,
             key_buffer: byref<ValueList<char>>,
             key: Key,
             bytes: ReadOnlySpan<byte>
-        ) : string =
+        ) : Span<char> =
 
         let len_u8 = (key.root_end - key.root_begin) + (key.key_end - key.key_begin)
 
-        if len_u8 + 22 >= key_buffer.Limit then
+        if
+            (key.root_end - key.root_begin) + (key.key_end - key.key_begin) + 22
+            >= key_buffer.Limit
+        then
             key_buffer.GrowTo(len_u8 + 22) // 22: 10 digits + 10 digits + . + .
 
         let mutable numchars = 0
@@ -194,7 +201,7 @@ module Internal =
         // key only
         if key.root_end = 0 then
             encoder.TryGetChars(key_s, bufspan, &numchars) |> ignore
-            String(bufspan.Slice(0, numchars))
+            bufspan.Slice(0, numchars)
         // root.key
         else
             let root = bytes.Slice(key.root_begin, key.root_end - key.root_begin)
@@ -210,7 +217,7 @@ module Internal =
             let mutable numchars2 = 0
             encoder.TryGetChars(key_s, bufspan.Slice(numchars + 1), &numchars2) |> ignore
             let mutable end1 = numchars + numchars2 + 1
-            String(bufspan.Slice(0, end1))
+            bufspan.Slice(0, end1)
 
 
     let inline onToken
@@ -220,123 +227,114 @@ module Internal =
         (tag: Token)
         ([<InlineIfLambda>] lambda: Value -> unit)
         =
-        // filter unwanted tokens and comments
-        if tag < Token.TABLE_STD then
-            ()
-        else
-            match tag with
-            | Token.UQ_KEY ->
-                key.key_begin <- prev
-                key.key_end <- nextpos
-            | Token.TABLE_STD ->
-                key.index <- 0
-                key.root_begin <- prev
-                key.root_end <- nextpos
-            | Token.TABLE_ARR ->
-                key.index <- key.index + 1
-                key.root_begin <- prev
-                key.root_end <- nextpos
-            | tok -> lambda (Value.mk_value tok prev nextpos)
+        match tag with
+        | Token.UQ_KEY ->
+            key.key_begin <- prev
+            key.key_end <- nextpos
+        | Token.TABLE_STD ->
+            key.index <- 0
+            key.root_begin <- prev
+            key.root_end <- nextpos
+        | Token.TABLE_ARR ->
+            key.index <- key.index + 1
+            key.root_begin <- prev
+            key.root_end <- nextpos
+        | _ -> lambda (Value(kind=tag, pos_begin=prev, pos_end=nextpos))
 
 
 type Key with
+    /// key struct to dot separated string
     member this.ToFullString(bytes: ReadOnlySpan<byte>) =
         let encoder =
-            System.Text.UTF8Encoding(
+            UTF8Encoding(
                 encoderShouldEmitUTF8Identifier = false,
                 throwOnInvalidBytes = true
             )
 
         use mutable key_buffer = new Internal.ValueList<char> 128
-        Internal.readKeyAsString (encoder, &key_buffer, this, bytes)
-
+        Internal.readKeyAsCharSpan (encoder, &key_buffer, this, bytes)
 
 
 let inline stream
-    (data: ReadOnlySpan<byte>,[<InlineIfLambda>] on_key_value: Key -> Value -> unit)
+    (data: ReadOnlySpan<byte>, [<InlineIfLambda>] on_key_value: Key -> Value -> unit)
     =
-    let mutable currentKey = {
-        index = 0
-        root_begin = 0
-        root_end = 0
-        key_begin = 0
-        key_end = 0
-    }
+    let mutable currentKey = Key()
 
     Automata.DFA.lex
-        Automata.toml
-        data
-        (fun s e v ->
+        (fun pos1 pos2 tag ->
             Internal.onToken
                 &currentKey
-                s
-                e
-                (LanguagePrimitives.EnumOfValue v)
+                pos1
+                pos2
+                (LanguagePrimitives.EnumOfValue tag)
                 (fun v -> on_key_value currentKey v)
         )
-        
+        Automata.toml
+        data
+
 /// IMPORTANT: dispose the ValueList after use
-let inline toValueList(data: ReadOnlySpan<byte>) : Internal.ValueList<_> =
-    let mutable d =
-        new Internal.ValueList<System.Collections.Generic.KeyValuePair<Key, Value>> 512
-
-    stream (
-        data,
-        (fun k v ->
-            Internal.ValueList.add (
-                &d,
-                System.Collections.Generic.KeyValuePair(k, v)
-            )
-        )
-    )
-
+let inline toValueList (data: ReadOnlySpan<byte>) : Internal.ValueList<_> =
+    let mutable d = new Internal.ValueList<KeyValuePair<Key, Value>> 512
+    stream (data, (fun k v -> Internal.ValueList.add (&d, KeyValuePair(k, v))))
     d
 
-/// does not convert keys to strings but keeps original Key struct
-let inline toKeyDictionary(data: ReadOnlySpan<byte>) =
-    let mutable d: Collections.Generic.Dictionary<Key, Value> =
-        Collections.Generic.Dictionary()
-
-    stream (data,(fun k v -> d.Add(k, v)))
-    d
-
-let inline toArray(data: ReadOnlySpan<byte>) =
+let inline toStructArray (data: ReadOnlySpan<byte>) =
     let mutable vlist = toValueList data
     let arr = vlist.AsSpan().ToArray()
     vlist.Dispose()
     arr
 
+let inline toArray (data: byte[]) =
+    let mutable tmp = new Internal.ValueList<KeyValuePair<_, Value>> 512
 
-let inline toDictionary(data: ReadOnlySpan<byte>) =
-    let mutable tmp =
-        new Internal.ValueList<System.Collections.Generic.KeyValuePair<Key, Value>> 512
+    let encoder =
+        UTF8Encoding(encoderShouldEmitUTF8Identifier = false, throwOnInvalidBytes = true)
+
+    let mutable key_buffer = new Internal.ValueList<char> 128
 
     stream (
-        data,
+        ReadOnlySpan<byte>.op_Implicit data,
         (fun k v ->
             Internal.ValueList.add (
                 &tmp,
-                System.Collections.Generic.KeyValuePair(k, v)
+                KeyValuePair(
+                    String(
+                        Internal.readKeyAsCharSpan (
+                            encoder,
+                            &key_buffer,
+                            k,
+                            ReadOnlySpan<byte>.op_Implicit data
+                        )
+                    ),
+                    v
+                )
             )
         )
     )
 
+    let arr = tmp.AsSpan().ToArray()
+    tmp.Dispose()
+    key_buffer.Dispose()
+    arr
+
+let inline toDictionary (data: ReadOnlySpan<byte>) =
+    let mutable tmp = new Internal.ValueList<KeyValuePair<Key, Value>> 512
+
+    stream (data, (fun k v -> Internal.ValueList.add (&tmp, KeyValuePair(k, v))))
+
     let encoder =
-        System.Text.UTF8Encoding(
-            encoderShouldEmitUTF8Identifier = false,
-            throwOnInvalidBytes = true
-        )
+        UTF8Encoding(encoderShouldEmitUTF8Identifier = false, throwOnInvalidBytes = true)
 
     let mutable key_buffer = new Internal.ValueList<char> 128
 
-    let dictionary = Collections.Generic.Dictionary()
+    let dictionary = Dictionary()
 
     for entry in Internal.ValueList.toSpan tmp do
         dictionary.Add(
-            Internal.readKeyAsString (encoder, &key_buffer, entry.Key, data),
+            String(Internal.readKeyAsCharSpan (encoder, &key_buffer, entry.Key, data)),
             entry.Value
         )
-    // avoid try with block
+    // avoid implicit try with block
     tmp.Dispose()
     key_buffer.Dispose()
     dictionary

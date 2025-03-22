@@ -31,6 +31,8 @@ type Benchmarks() =
 
         this.Utf16 <- builder.ToString()
         this.Utf8 <- Encoding.UTF8.GetBytes this.Utf16
+        ()
+        
 
     [<Benchmark>]
     member this.CsToml() =
@@ -55,10 +57,10 @@ type Benchmarks() =
     member this.RTomlToDictionary() = RToml.toDictionary this.Utf8
 
     [<Benchmark>]
-    member this.RTomlToKeyDictionary() = RToml.toKeyDictionary this.Utf8
-
-    [<Benchmark>]
     member this.RTomlToArray() = RToml.toArray this.Utf8
+    
+    [<Benchmark>]
+    member this.RTomlToStructArray() = RToml.toStructArray this.Utf8
 
     [<Benchmark>]
     member this.RTomlToValueList() =
@@ -66,7 +68,7 @@ type Benchmarks() =
         pooled_list.Dispose()
 
     [<Benchmark>]
-    member this.RTomlCountSum() =
+    member this.RTomlStream() =
         let mutable count = 0
         RToml.stream (
             this.Utf8,
@@ -76,5 +78,6 @@ type Benchmarks() =
             )
         )
         count
+
 
 BenchmarkRunner.Run<Benchmarks>() |> ignore
