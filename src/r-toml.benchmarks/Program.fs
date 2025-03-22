@@ -1,13 +1,11 @@
-﻿open BenchmarkDotNet
+﻿#nowarn "3391"
 open BenchmarkDotNet.Attributes
 open BenchmarkDotNet.Order
 open System.Text
 open System.IO
 open BenchmarkDotNet.Running
-open System.Runtime.CompilerServices
-open System.Collections.Generic
-
-#nowarn "3391"
+open BenchmarkDotNet.Columns
+open BenchmarkDotNet.Configs
 
 [<Orderer(SummaryOrderPolicy.FastestToSlowest)>]
 [<MemoryDiagnoser>]
@@ -16,6 +14,7 @@ open System.Collections.Generic
 type Benchmarks() =
     member val Utf8: byte[] = null with get, set
     member val Utf16: string = null with get, set
+    member val DataSize: int = 0 with get, set
     
     [<GlobalSetup>]
     member this.Setup() =
@@ -31,6 +30,7 @@ type Benchmarks() =
 
         this.Utf16 <- builder.ToString()
         this.Utf8 <- Encoding.UTF8.GetBytes this.Utf16
+        this.DataSize <- this.Utf8.Length
         ()
         
 
@@ -79,5 +79,35 @@ type Benchmarks() =
         )
         count
 
+type ThroughputColumn(dataSize:int) = 
+    interface IColumn with 
+        member _.Id = "Throughput"
+        member _.ColumnName = "Throughput"
+        member _.AlwaysShow = true
+        member _.Category = ColumnCategory.Custom
+        member _.PriorityInCategory = 0
+        member _.IsNumeric = true
+        member _.UnitType = UnitType.Dimensionless
+        member _.Legend = "Bytes processed per second"
+        member this.GetValue(summary, benchmarkCase) =
+            match summary[benchmarkCase] with
+            | null -> "N/A"
+            | report when report.ResultStatistics = null -> "N/A"
+            | report ->
+                let datasizeMBs = float dataSize / (1024.0 * 1024.0)
+                let meantimeNs = report.ResultStatistics.Mean
+                let ops_sec = float 1_000_000_000 / meantimeNs
+                let mbs_sec = datasizeMBs * ops_sec
+                $"%.2f{mbs_sec} MB/s"
+        member this.GetValue(summary, benchmarkCase, _style) =
+            (this :> IColumn).GetValue(summary, benchmarkCase)
+        member _.IsDefault(_, _) = false
+        member _.IsAvailable(_) = true
 
-BenchmarkRunner.Run<Benchmarks>() |> ignore
+
+let cfg = 
+    let inst = Benchmarks()
+    inst.Setup() 
+    ManualConfig.Create(DefaultConfig.Instance).AddColumn(ThroughputColumn inst.DataSize)
+
+BenchmarkRunner.Run<Benchmarks> cfg |> ignore
