@@ -184,7 +184,7 @@ module Internal =
 
     // this should ideally be a transducer but
     // but it's still better than default interpolation
-    let readKeyAsCharSpan
+    let keyToChars
         (
             encoding: UTF8Encoding,
             key_buffer: byref<ValueList<char>>,
@@ -257,7 +257,7 @@ type Key with
             )
 
         use mutable key_buffer = new Internal.ValueList<char> 128
-        String(Internal.readKeyAsCharSpan (encoding, &key_buffer, this, bytes))
+        String(Internal.keyToChars (encoding, &key_buffer, this, bytes))
 
 let inline stream
     (data: ReadOnlySpan<byte>, [<InlineIfLambda>] on_key_value: Key -> Value -> unit)
@@ -303,7 +303,7 @@ let inline toArray (data: byte[]) =
                 &tmp,
                 KeyValuePair(
                     String(
-                        Internal.readKeyAsCharSpan (
+                        Internal.keyToChars (
                             encoder,
                             &key_buffer,
                             k,
@@ -335,7 +335,7 @@ let inline toDictionary (data: ReadOnlySpan<byte>) =
 
     for entry in Internal.ValueList.toSpan tmp do
         dictionary.Add(
-            String(Internal.readKeyAsCharSpan (encoder, &key_buffer, entry.Key, data)),
+            String(Internal.keyToChars (encoder, &key_buffer, entry.Key, data)),
             entry.Value
         )
     // avoid implicit try with block

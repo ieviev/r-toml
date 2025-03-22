@@ -1,10 +1,11 @@
 ﻿open System.Text
 open Expecto
 open System
+
 #nowarn "3391"
 
 let sample1 =
-        "# some comment
+    "# some comment
 
 [person]
 
@@ -37,42 +38,69 @@ id = 2
 name = \"bbbb\"
 "B
 
-let utf8 (b:System.Span<byte>) = System.Text.Encoding.UTF8.GetString(b)
+let utf8ToString startpos endpos (b: System.Span<byte>) =
+    System.Text.Encoding.UTF8.GetString(b.Slice(startpos, endpos - startpos))
+
+let date s = System.DateTimeOffset.Parse s
 
 let testRoot =
     testList "root" [
         test "bad toml 1" {
             Expect.throws
-                (fun _ -> RToml.toDictionary ("[server]]\na = 1"B) |> ignore)
+                (fun _ -> RToml.toDictionary "[server]]\na = 1"B |> ignore)
                 "invalid toml should throw"
         }
         test "bad toml 2" {
             Expect.throws
-                (fun _ -> RToml.toDictionary ("[serv/er]]\na = 1"B) |> ignore)
+                (fun _ -> RToml.toDictionary "[serv/er]]\na = 1"B |> ignore)
                 "invalid toml should throw"
         }
         test "ok toml 1" {
             let data = "[server]\na = 1"B
-            let d = RToml.toDictionary "[server]\na = 1"B
-            Expect.equal (d["server.a"].ToInt(data)) 1 "not equal"
+            let d = RToml.toDictionary data
+            Expect.equal (d["server.a"].ToInt data) 1 "not equal"
         }
         test "all cases" {
             let d = RToml.toDictionary sample1
-            let eq key fn v = Expect.equal (fn (d[key])) v "not equal"
+
+            let eq key fn v =
+                Expect.equal (fn (d[key])) v "not equal"
+
             eq "person.boolean" (fun v -> v.ToBool()) true
             eq "person.boolean2" (fun v -> v.ToBool()) false
             eq "person.int" (fun v -> v.ToInt sample1) 1
             eq "person.float" (fun v -> v.ToFloat sample1) 0.005
-            eq "person.str_basic_e" (fun v -> v.ToString(sample1)) ""
+            eq "person.str_basic_e" (fun v -> v.ToString sample1) ""
             eq "person.str_basic_esc" (fun v -> v.kind) RToml.Token.ESC_STR
-            eq "person.str_lit_esc" (fun v -> v.ToString(sample1)) """afdf\nsd"""
-            eq "person.str_lit" (fun v -> v.ToString(sample1)) """literal string"""
-            eq "person.str_lit_ml" (fun v -> v.ToString(sample1)) "ml literal string\n"
-            eq "person.dateoffset" (fun v -> v.ToDateTimeOffset(sample1)) (System.DateTimeOffset.Parse("1979-05-27T07:32:00Z"))
-            eq "person.int_arr" (fun v -> utf8 (sample1.AsSpan(v.pos_begin,v.pos_end - v.pos_begin))) "1, 2, 3"
-            eq "person.str_arr" (fun v -> utf8 (sample1.AsSpan(v.pos_begin,v.pos_end - v.pos_begin))) "\"a\", \"b\", \"c\""
-            eq "person.float_arr" (fun v -> utf8 (sample1.AsSpan(v.pos_begin,v.pos_end - v.pos_begin))) "0.1, 0.5, 0.6"
-            eq "person.bool_arr" (fun v -> utf8 (sample1.AsSpan(v.pos_begin,v.pos_end - v.pos_begin))) "true, false, true"
+            eq "person.str_lit_esc" (fun v -> v.ToString sample1) """afdf\nsd"""
+            eq "person.str_lit" (fun v -> v.ToString sample1) """literal string"""
+            eq "person.str_lit_ml" (fun v -> v.ToString sample1) "ml literal string\n"
+
+            eq
+                "person.dateoffset"
+                (fun v -> v.ToDateTimeOffset sample1)
+                (date "1979-05-27T07:32:00Z")
+
+            eq
+                "person.int_arr"
+                (fun v -> utf8ToString v.pos_begin v.pos_end sample1)
+                "1, 2, 3"
+
+            eq
+                "person.str_arr"
+                (fun v -> utf8ToString v.pos_begin v.pos_end sample1)
+                "\"a\", \"b\", \"c\""
+
+            eq
+                "person.float_arr"
+                (fun v -> utf8ToString v.pos_begin v.pos_end sample1)
+                "0.1, 0.5, 0.6"
+
+            eq
+                "person.bool_arr"
+                (fun v -> utf8ToString v.pos_begin v.pos_end sample1)
+                "true, false, true"
+
             eq "children/1.id" (fun v -> v.ToInt sample1) 1
             eq "children/1.name" (fun v -> v.ToString sample1) "aaaa"
             eq "children/2.id" (fun v -> v.ToInt sample1) 2
@@ -83,5 +111,4 @@ let testRoot =
 
 
 [<EntryPoint>]
-let main argv =
-    Expecto.Tests.runTestsWithCLIArgs [] argv testRoot
+let main argv = runTestsWithCLIArgs [] argv testRoot
